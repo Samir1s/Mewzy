@@ -1,0 +1,255 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --neon-green: #22c55e;
+  --neon-purple: #a855f7;
+}
+
+body {
+  background-color: #0f0f13;
+  color: #ffffff;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+/* --- PREMIUM AESTHETICS --- */
+@layer utilities {
+  .premium-gradient-bg {
+    background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.05), transparent 45%),
+      radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.05), transparent 45%);
+  }
+
+  /* --- RESPONSIVE ADJUSTMENTS --- */
+  /* Adjusted for new Dock (Nav ~80px + Player ~80px + Buffer) */
+  .content-safe-area {
+    padding-bottom: 180px !important;
+  }
+
+  .content-safe-area-x {
+    padding-right: 1rem;
+  }
+}
+
+@layer utilities {
+
+  /* Hiding scrollbar globally as requested */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* --- GLASSMORPHISM --- */
+.glass-effect {
+  background: rgba(18, 18, 24, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* --- SCROLLBARS --- */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-green);
+}
+
+/* --- UTILITIES --- */
+.text-glow {
+  text-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+}
+
+/* Ensures high-priority items like the search drawer and nav pill stay on top */
+.player-container {
+  z-index: 140;
+}
+
+/* --- ISLAND LAYOUT --- */
+.main-island-container {
+  background: rgba(18, 18, 22, 0.45);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+}
+
+/* Floating Island Utilities */
+.island-nav {
+  background: rgba(20, 20, 25, 0.85);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Subtle border */
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Fix for high-visibility Search Bar UX */
+input::placeholder {
+  color: rgba(255, 255, 255, 0.25) !important;
+  font-weight: 400;
+}
+
+/* --- RECENTLY PLAYED UI POLISH --- */
+.recent-item-hover {
+  transition: background-color 0.2s ease;
+}
+
+.recent-item-hover:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* --- ANIMATIONS --- */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* --- SOFT FADE MASK --- */
+/* Creates a seamless fade-out at the bottom so content doesn't "cut off" harshly */
+/* --- SOFT FADE MASK REMOVED --- */
+/* The mask was cutting off content on mobile. Removed for true responsiveness. */
+
+/* Update safe area for the floating island */
+.content-safe-area {
+  padding-bottom: 240px !important;
+}
+
+
+/* --- NEW ANIMATIONS (Flow & Polish) --- */
+@keyframes aurora {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0.4;
+  }
+
+  25% {
+    transform: translate(-2%, 5%) rotate(5deg);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: translate(5%, -2%) rotate(-5deg);
+    opacity: 0.4;
+  }
+
+  75% {
+    transform: translate(2%, 2%) rotate(2deg);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0.4;
+  }
+}
+
+.animate-aurora {
+  animation: aurora 15s infinite alternate ease-in-out;
+}
+
+@keyframes flow-liquid {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.bg-flow-gradient {
+  background: linear-gradient(-45deg, #1db954, #22c55e, #10b981, #059669);
+  background-size: 300% 300%;
+  animation: flow-liquid 6s ease infinite;
+}
+
+@keyframes sound-wave {
+
+  0%,
+  100% {
+    height: 10%;
+  }
+
+  50% {
+    height: 100%;
+  }
+}
+
+.animate-wave {
+  animation: sound-wave 1s ease-in-out infinite;
+}
+
+.animate-wave-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.animate-wave-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.animate-wave-delay-3 {
+  animation-delay: 0.3s;
+}
+
+.animate-wave-delay-4 {
+  animation-delay: 0.4s;
+}
+
+/* Cool Glow Effect */
+.glow-on-hover:hover {
+  box-shadow: 0 0 25px rgba(34, 197, 94, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin 8s linear infinite;
+}
+
+.animate-spin-slow-paused {
+  animation: spin 8s linear infinite;
+  animation-play-state: paused;
+}

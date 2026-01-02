@@ -1,0 +1,11 @@
+flask
+flask-cors
+flask-sqlalchemy
+flask-jwt-extended
+flask-limiter
+ytmusicapi
+yt-dlp
+python-dotenv
+requests
+gunicorn
+psycopg2-binary

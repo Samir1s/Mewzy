@@ -1,0 +1,65 @@
+1. Admin / User Upload System (Day 10)
+Status: Missing
+
+
+Requirement: The documentation requires an "Admin upload system" to "Upload audio files" manually and "Store metadata in DB".
++2
+
+Current State: Your app.py has an UPLOAD_FOLDER, but it is currently used only for downloading tracks from YouTube (yt_dlp). You lack an API endpoint allowing a user to upload their own MP3 file from their computer.
+
+Task:
+
+Create a frontend UI in Sidebar.jsx (you already have an "Upload" tab placeholder) to select a file.
+
+Create a Flask endpoint (e.g., /api/upload) to accept multipart/form-data, save the file, and create a Track entry in the database.
+
+2. Resume Playback Logic (Day 9)
+Status: Partially Complete
+
+
+Requirement: "Resume playback from last position".
+
+
+Current State: Your app.py (history_update) and models.py (RecentlyPlayed) successfully save the timestamp. However, your PlayerContext.jsx does not seem to use this timestamp to seek to the correct second when a song starts.
+
+Task:
+
+Update playSong in PlayerContext.jsx to check if a timestamp exists for that song and set audioRef.current.currentTime accordingly upon load.
+
+3. Security & Optimization (Day 12)
+Status: Missing
+
+
+Requirement: "Rate limiting" and "Code refactoring".
+
+Current State:
+
+Refactoring: Your app.py is becoming large. Standard practice is to move routes into "Blueprints" (e.g., routes/auth.py, routes/player.py).
+
+Rate Limiting: You need to install Flask-Limiter to prevent API abuse.
+
+Secrets: Your JWT_SECRET_KEY is currently hardcoded ('dev-secret-key'). This needs to move to an .env file for "Production-ready backend" status.
+
+4. Deployment (Day 13)
+Status: Not Started
+
+
+Requirement: "Deploy Flask backend" (Render/Railway) and "Deploy frontend" (Vercel/Netlify).
++1
+
+Current State: The app is running on 127.0.0.1:5000 (Localhost).
+
+Task:
+
+Create a requirements.txt for Python.
+
+Create a Procfile (if using Render/Heroku) using Gunicorn instead of the dev server.
+
+Update React API calls to point to the production URL instead of localhost.
+
+5. Documentation & Submission (Day 14)
+Status: Not Started
+
+
+Requirement: "README.md", "API documentation", and a "Video".
++1
