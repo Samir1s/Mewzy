@@ -25,10 +25,12 @@ app.config.from_object(Config)
 
 # Initialize Extensions
 # TODO: In production, strict origin restriction is required.
-allowed_origins = ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"]
+allowed_origins = ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "https://mewzy.vercel.app"]
 frontend_url = os.getenv('FRONTEND_URL')
 if frontend_url:
     allowed_origins.append(frontend_url)
+
+print(f"DEBUG: Allowed Origins: {allowed_origins}") # Print to Render logs
 
 CORS(app, resources={r"/*": {"origins": allowed_origins}}, supports_credentials=True)
 db.init_app(app)
