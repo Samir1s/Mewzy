@@ -137,7 +137,7 @@ def upload_avatar():
 
         filename = save_optimized_image(file, Config.UPLOAD_FOLDER, prefix=f"avatar_{current_id}")
         
-        url = f"http://127.0.0.1:5000/api/uploads/{filename}"
+        url = f"/api/uploads/{filename}"
         user.profile_pic = url
         db.session.commit()
         
@@ -160,7 +160,7 @@ def upload_banner():
         
         filename = save_optimized_image(file, Config.UPLOAD_FOLDER, prefix=f"banner_{current_id}", max_size=(1500, 500))
         
-        url = f"http://127.0.0.1:5000/api/uploads/{filename}"
+        url = f"/api/uploads/{filename}"
         user.banner_url = url
         db.session.commit()
         

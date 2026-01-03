@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipBack, SkipForward, ChevronDown, Volume2, VolumeX, MoreHorizontal, Loader2, Shuffle, Repeat, Repeat1, Heart } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
 import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
+import API_URL from '../config';
 
-// --- HELPERS (Unchanged) ---
 // --- HELPERS (Unchanged) ---
 const getHighResCover = (url) => {
     if (!url) return "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80";
@@ -80,7 +80,7 @@ const extractColor = (imgSrc) => {
         const img = new Image();
         img.crossOrigin = "Anonymous";
         // Use proxy to avoid CORS/Tainted Canvas issues
-        img.src = `http://127.0.0.1:5000/api/proxy_image?url=${encodeURIComponent(imgSrc)}`;
+        img.src = `${API_URL}/api/proxy_image?url=${encodeURIComponent(imgSrc)}`;
         img.onload = () => {
             try {
                 const canvas = document.createElement('canvas');
@@ -266,7 +266,7 @@ export default function Player() {
         if (showLyrics && currentSong) {
             setLoadingLyrics(true);
             setLyricsData([]); setIsSynced(false);
-            fetch(`http://127.0.0.1:5000/api/lyrics/${currentSong.id}`)
+            fetch(`${API_URL}/api/lyrics/${currentSong.id}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.type === 'synced' || (data.lyrics && data.lyrics.match(/^\[\d{2}/m))) {

@@ -46,7 +46,7 @@ def get_playlist(playlist_id):
             'artist': t.artist,
             'cover': t.cover_url,
             'duration': t.duration,
-            'stream_url': f"http://127.0.0.1:5000/api/stream/{t.video_id}"
+            'stream_url': f"/api/stream/{t.video_id}"
         })
 
     return jsonify({'id': playlist.id, 'name': playlist.name, 'tracks': tracks}), 200

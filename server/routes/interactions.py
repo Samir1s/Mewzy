@@ -16,7 +16,7 @@ def get_likes():
         'title': t.title,
         'artist': t.artist,
         'cover': t.cover_url,
-        'stream_url': f"http://127.0.0.1:5000/api/stream/{t.video_id}"
+        'stream_url': f"/api/stream/{t.video_id}"
     } for t in user.liked_tracks]), 200
 
 @interactions_bp.route('/likes', methods=['POST'])
@@ -102,7 +102,7 @@ def get_history():
                 'artist': h.track.artist,
                 'cover': h.track.cover_url,
                 'duration': h.track.duration,
-                'stream_url': f"http://127.0.0.1:5000/api/stream/{h.track.video_id}",
+                'stream_url': f"/api/stream/{h.track.video_id}",
                 'resume_time': h.timestamp
             })
     return jsonify(valid_history), 200

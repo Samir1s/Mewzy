@@ -69,7 +69,7 @@ def search():
                 'artist': artist,
                 'cover': r['thumbnails'][-1]['url'] if 'thumbnails' in r else '',
                 'duration': r.get('duration', '0:00') if search_type == 'songs' else ('Playlist' if search_type == 'playlists' else 'Series'),
-                'stream_url': f"http://127.0.0.1:5000/api/stream/{r[id_key]}" if search_type == 'songs' else None,
+                'stream_url': f"/api/stream/{r[id_key]}" if search_type == 'songs' else None,
                 'type': search_type,
                 'item_count': r.get('itemCount', 'Unknown') if search_type == 'playlists' else None
             })
@@ -106,7 +106,7 @@ def feed():
                 'artist': r['artists'][0]['name'],
                 'cover': r['thumbnails'][-1]['url'],
                 'duration': r.get('duration', '0:00'),
-                'stream_url': f"http://127.0.0.1:5000/api/stream/{r['videoId']}"
+                'stream_url': f"/api/stream/{r['videoId']}"
             })
         return jsonify(formatted)
     except: return jsonify([])
@@ -158,7 +158,7 @@ def get_podcast_episodes(browse_id):
                 'artist': artist,
                 'cover': t.get('thumbnails', [{'url': ''}])[-1]['url'] if t.get('thumbnails') else (data.get('thumbnails', [{'url': ''}])[-1]['url']),
                 'duration': t.get('duration', '0:00'),
-                'stream_url': f"http://127.0.0.1:5000/api/stream/{t['videoId']}"
+                'stream_url': f"/api/stream/{t['videoId']}"
             })
         return jsonify({
             'title': data.get('title', 'Podcast'),
@@ -194,7 +194,7 @@ def get_recommendations():
                 'artist': t['artists'][0]['name'] if 'artists' in t else 'Unknown',
                 'cover': t.get('thumbnails', t.get('thumbnail', [{'url':''}]))[-1]['url'],
                 'duration': '0:00',
-                'stream_url': f"http://127.0.0.1:5000/api/stream/{t['videoId']}"
+                'stream_url': f"/api/stream/{t['videoId']}"
             } for t in radio['tracks'] if 'videoId' in t])
             
         return feed()
@@ -238,7 +238,7 @@ def get_flow():
                 'artist': t['artists'][0]['name'] if 'artists' in t else 'Unknown',
                 'cover': t.get('thumbnails', t.get('thumbnail', [{'url':''}]))[-1]['url'],
                 'duration': '0:00',
-                'stream_url': f"http://127.0.0.1:5000/api/stream/{t['videoId']}"
+                'stream_url': f"/api/stream/{t['videoId']}"
             } for t in radio['tracks'] if 'videoId' in t]
             
             # Shuffle slightly for "Freshness" feeling
@@ -264,7 +264,7 @@ def get_radio(video_id):
                     'artist': t['artists'][0]['name'] if 'artists' in t else 'Unknown',
                     'cover': t.get('thumbnails', t.get('thumbnail', [{'url':''}]))[-1]['url'],
                     'duration': '0:00',
-                    'stream_url': f"http://127.0.0.1:5000/api/stream/{t['videoId']}"
+                    'stream_url': f"/api/stream/{t['videoId']}"
                 } for t in radio['tracks'] if 'videoId' in t]
         except: pass
 
@@ -295,7 +295,7 @@ def get_radio(video_id):
                                 'artist': t['artists'][0]['name'] if 'artists' in t else 'Unknown',
                                 'cover': t.get('thumbnails', t.get('thumbnail', [{'url':''}]))[-1]['url'],
                                 'duration': '0:00',
-                                'stream_url': f"http://127.0.0.1:5000/api/stream/{t['videoId']}"
+                                'stream_url': f"/api/stream/{t['videoId']}"
                             } for t in user_radio['tracks'] if 'videoId' in t]
             except Exception as e:
                 print(f"Taste fetch error: {e}")
@@ -345,7 +345,7 @@ def get_discover(category):
                     'artist': r['artists'][0]['name'] if 'artists' in r else 'Unknown',
                     'cover': r['thumbnails'][-1]['url'] if 'thumbnails' in r else '',
                     'duration': r.get('duration', '0:00'),
-                    'stream_url': f"http://127.0.0.1:5000/api/stream/{r['videoId']}"
+                    'stream_url': f"/api/stream/{r['videoId']}"
                 })
         return jsonify(data)
     except: return jsonify([])
