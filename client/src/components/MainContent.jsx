@@ -2,6 +2,7 @@ import React, { useEffect, useState, memo } from 'react';
 import { Heart, MoreHorizontal, Music, PlayCircle, UploadCloud, CheckCircle, Podcast as PodcastIcon, Trash2, ArrowLeft, Play, Compass, Loader2, ListMusic, Search, PlusCircle, Edit2, User as UserIcon, Globe, TrendingUp, Settings, Upload, UserPlus, LogOut, LogIn } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
 import API_URL from '../config';
+import { getImageUrl } from '../utils/urlUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Extracted Components
@@ -50,7 +51,7 @@ const AvatarPicker = ({ current, onSelect }) => {
             {avatars.map((url, i) => (
                 <img
                     key={i}
-                    src={url}
+                    src={getImageUrl(url)}
                     onClick={() => onSelect(url)}
                     className={`w-16 h-16 rounded-full cursor-pointer hover:scale-110 transition border-2 ${current === url ? 'border-green-500' : 'border-transparent'}`}
                     alt="avatar"
@@ -135,7 +136,7 @@ const DiscoverHero = ({ item, onPlay, onLike, isLiked }) => {
     return (
         <div className="relative h-[55vh] md:h-[70vh] min-h-[400px] w-full group overflow-hidden">
             <div className="absolute inset-0">
-                <img src={item.cover} className="w-full h-full object-cover" alt="Hero" />
+                <img src={getImageUrl(item.cover)} className="w-full h-full object-cover" alt="Hero" />
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#121212]/20 to-[#121212]" />
                 <div className="absolute inset-0 bg-gradient-to-r from-[#121212]/90 via-[#121212]/40 to-transparent" />
             </div>
@@ -190,7 +191,7 @@ const ScrollRow = ({ title, items, isCircle = false, onPlay }) => {
                         className={`relative flex-shrink-0 group snap-start cursor-pointer ${isCircle ? "w-32" : "w-36 md:w-48"}`}
                     >
                         <div className={`overflow-hidden relative shadow-lg bg-[#18181d] ${isCircle ? "rounded-full aspect-square" : "rounded-2xl aspect-square mb-3"}`}>
-                            <img src={item.cover} className="w-full h-full object-cover transition duration-500 group-hover:scale-110 group-hover:opacity-80" alt={item.title} />
+                            <img src={getImageUrl(item.cover)} className="w-full h-full object-cover transition duration-500 group-hover:scale-110 group-hover:opacity-80" alt={item.title} />
                             <div className={`absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isCircle ? "bg-black/40" : ""}`}>
                                 <Play size={isCircle ? 32 : 40} className="text-white drop-shadow-lg" fill="white" />
                             </div>
@@ -233,7 +234,7 @@ const PodcastSection = ({ onOpenPodcast }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {podcasts.map((p) => (
                     <div key={p.id} onClick={() => onOpenPodcast(p.id)} className="group relative bg-[#18181d] p-4 rounded-2xl border border-white/5 hover:bg-white/5 transition cursor-pointer">
-                        <img src={p.cover || DEFAULT_IMG} onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_IMG; }} className="w-full h-48 object-cover rounded-xl mb-4 shadow-lg group-hover:scale-[1.02] transition" alt={p.title} />
+                        <img src={getImageUrl(p.cover) || DEFAULT_IMG} onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_IMG; }} className="w-full h-48 object-cover rounded-xl mb-4 shadow-lg group-hover:scale-[1.02] transition" alt={p.title} />
                         <h3 className="font-bold text-white truncate">{p.title}</h3>
                         <p className="text-sm text-gray-500">{p.artist}</p>
                         <div className="mt-3">
@@ -268,7 +269,7 @@ const PodcastDetail = ({ podcastId, onBack }) => {
             </button>
 
             <div className="flex flex-col md:flex-row items-end gap-6 mb-8">
-                <img src={data.cover || DEFAULT_IMG} onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_IMG; }} className="w-52 h-52 object-cover rounded-2xl shadow-2xl" alt={data.title} />
+                <img src={getImageUrl(data.cover) || DEFAULT_IMG} onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_IMG; }} className="w-52 h-52 object-cover rounded-2xl shadow-2xl" alt={data.title} />
                 <div>
                     <h4 className="text-sm font-bold text-purple-400 uppercase tracking-wider mb-2">Podcast</h4>
                     <h1 className="text-4xl font-bold text-white mb-4">{data.title}</h1>
@@ -440,7 +441,7 @@ const ProfileView = ({ user, targetId, setViewingProfileId, onLoginClick, onLogo
                 {/* Banner */}
                 <div className="h-48 md:h-64 bg-gray-800 relative">
                     {profileData.banner_url ? (
-                        <img src={profileData.banner_url} className="w-full h-full object-cover" alt="Banner" />
+                        <img src={getImageUrl(profileData.banner_url)} className="w-full h-full object-cover" alt="Banner" />
                     ) : (
                         <div className="w-full h-full bg-gradient-to-r from-gray-900 to-black" />
                     )}
@@ -459,7 +460,7 @@ const ProfileView = ({ user, targetId, setViewingProfileId, onLoginClick, onLogo
                     {/* Avatar */}
                     <div className="relative group/avatar">
                         <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-[#121212] overflow-hidden bg-black shadow-2xl">
-                            <img src={profileData.profile_pic} className="w-full h-full object-cover" alt="Avatar" />
+                            <img src={getImageUrl(profileData.profile_pic)} className="w-full h-full object-cover" alt="Avatar" />
                         </div>
                         {editing && (
                             <label className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center cursor-pointer opacity-0 group-hover/avatar:opacity-100 transition-opacity">
@@ -529,7 +530,7 @@ const ProfileView = ({ user, targetId, setViewingProfileId, onLoginClick, onLogo
                                 {requests.map(r => (
                                     <div key={r.id} className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <img src={r.profile_pic} className="w-8 h-8 rounded-full" />
+                                            <img src={getImageUrl(r.profile_pic)} className="w-8 h-8 rounded-full" />
                                             <span className="font-bold text-sm">{r.username}</span>
                                         </div>
                                         <button onClick={() => acceptRequest(r.id)} className="px-3 py-1 bg-green-500/20 text-green-500 rounded-full text-xs font-bold">Accept</button>
@@ -545,7 +546,7 @@ const ProfileView = ({ user, targetId, setViewingProfileId, onLoginClick, onLogo
                             <div className="flex flex-wrap gap-2">
                                 {friends.map(f => (
                                     <div key={f.id} onClick={() => { if (setViewingProfileId) { setViewingProfileId(f.id); } }} className="cursor-pointer" title={f.username}>
-                                        <img src={f.profile_pic} className="w-10 h-10 rounded-full border border-white/10" />
+                                        <img src={getImageUrl(f.profile_pic)} className="w-10 h-10 rounded-full border border-white/10" />
                                     </div>
                                 ))}
                             </div>
@@ -872,7 +873,7 @@ export default function MainContent({ activeTab, setActiveTab, searchQuery, user
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                             {feed.map((Person, i) => (
                                                 <div key={Person.id} onClick={() => { setViewingProfileId(Person.id); setActiveTab('Profile'); }} className="bg-white/5 p-4 rounded-xl flex flex-col items-center gap-2 cursor-pointer hover:bg-white/10 transition group">
-                                                    <img src={Person.profile_pic} className="w-20 h-20 rounded-full object-cover shadow-lg group-hover:scale-105 transition" />
+                                                    <img src={getImageUrl(Person.profile_pic)} className="w-20 h-20 rounded-full object-cover shadow-lg group-hover:scale-105 transition" />
                                                     <div className="font-bold text-sm text-center">{Person.username}</div>
                                                     <div className="text-[10px] text-gray-500 uppercase font-bold text-green-500">{Person.status === 'friend' ? 'Friend' : (Person.status === 'sent' ? 'Requested' : (Person.status === 'received' ? 'Request Received' : ''))}</div>
                                                 </div>
@@ -882,7 +883,7 @@ export default function MainContent({ activeTab, setActiveTab, searchQuery, user
                                         feed.map((item, i) => (
                                             item.type === 'playlists' || item.type === 'podcast' ? (
                                                 <motion.div variants={itemVariants} key={i} className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 cursor-pointer group transition border border-white/5">
-                                                    <img src={item.cover || DEFAULT_IMG} onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_IMG; }} className="w-16 h-16 rounded-lg object-cover" alt={item.title} />
+                                                    <img src={getImageUrl(item.cover) || DEFAULT_IMG} onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_IMG; }} className="w-16 h-16 rounded-lg object-cover" alt={item.title} />
                                                     <div className="flex-1">
                                                         <h4 className="text-white font-bold truncate">{item.title}</h4>
                                                         <p className="text-sm text-gray-400">{item.artist} • {item.item_count ? item.item_count + ' items' : 'Playlist'}</p>
@@ -1049,7 +1050,7 @@ export default function MainContent({ activeTab, setActiveTab, searchQuery, user
                                     {(discoverData.rest.length > 0 ? discoverData.rest : featured.slice(2, 7)).map((item) => (
                                         <div key={item.id} onClick={() => playSong(item, feed)} className="group cursor-pointer bg-black/20 p-3 rounded-2xl hover:bg-white/10 transition duration-300">
                                             <div className="relative aspect-square rounded-xl overflow-hidden mb-3">
-                                                <img src={item.cover} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" alt={item.title} />
+                                                <img src={getImageUrl(item.cover)} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" alt={item.title} />
                                                 <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition" />
                                                 <button className="absolute bottom-2 right-2 p-3 bg-green-500 rounded-full text-black opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all shadow-lg hover:scale-110">
                                                     <Play fill="black" size={18} />
