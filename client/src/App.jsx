@@ -37,7 +37,8 @@ const AuthModal = ({ onClose, onLogin }) => {
             } else {
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("username", data.username);
-                onLogin(data.username);
+                localStorage.setItem("profile_pic", data.profile_pic || "");
+                onLogin(data);
                 onClose();
             }
         } catch (err) {
@@ -82,6 +83,11 @@ export default function App() {
     const [user, setUser] = useState(localStorage.getItem("username"));
     const [profilePic, setProfilePic] = useState(localStorage.getItem("profile_pic"));
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    const handleLogin = (data) => {
+        setUser(data.username);
+        setProfilePic(data.profile_pic);
+    };
 
     return (
         <PlayerProvider>
@@ -166,6 +172,15 @@ export default function App() {
                                 onMenuClick={() => setIsSidebarOpen(true)}
                                 profilePic={profilePic}
                                 setProfilePic={setProfilePic}
+                                onLoginClick={() => setShowAuthModal(true)}
+                                onLogoutClick={() => {
+                                    localStorage.removeItem("token");
+                                    localStorage.removeItem("username");
+                                    localStorage.removeItem("profile_pic");
+                                    setUser(null);
+                                    setProfilePic(null);
+                                    window.location.reload();
+                                }}
                             />
                         )}
                     </motion.div>
@@ -193,7 +208,7 @@ export default function App() {
             <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
             <AnimatePresence>
-                {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onLogin={setUser} />}
+                {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} onLogin={handleLogin} />}
             </AnimatePresence>
         </PlayerProvider>
     );

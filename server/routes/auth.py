@@ -13,17 +13,8 @@ from server.utils import save_optimized_image
 
 auth_bp = Blueprint('auth', __name__)
 
-# Note: Limiter needs to be initialized with the app in app.py, 
-# but for blueprints we can use the extension instance if we import it.
-# Ideally, we pass the limiter or use a shared extension instance.
-# For simplicity in this refactor, we will rely on global decorators or omit strict rate limits here
-# OR we can create a shared extensions file.
-# Let's import the limiter from extensions.py if we had one.
-# For now, I'll assume we can't easily import the *app-bound* limiter here without circular deps.
-# I will skip the explicit @limiter decorators here for now or add them back later properly.
-
 @auth_bp.route('/register', methods=['POST'])
-
+@limiter.limit("5 per minute")
 def register():
     data = request.json
     if not data or not data.get('username') or not data.get('email') or not data.get('password'):

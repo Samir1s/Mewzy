@@ -24,10 +24,28 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # Initialize Extensions
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+# TODO: In production, strict origin restriction is required.
+allowed_origins = ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"]
+frontend_url = os.getenv('FRONTEND_URL')
+if frontend_url:
+    allowed_origins.append(frontend_url)
+
+CORS(app, resources={r"/*": {"origins": allowed_origins}}, supports_credentials=True)
 db.init_app(app)
 jwt.init_app(app)
 limiter.init_app(app)
+
+# Security Headers
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    # Strict-Transport-Security (HSTS) - 1 year. Only applied if HTTPS is used.
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    # Content Security Policy (Basic)
+    # Note: Connect-src needs to allow self and potentially other APIs if used
+    response.headers['Content-Security-Policy'] = "default-src 'self' http: https: data: blob: 'unsafe-inline'"
+    return response
 
 # JWT Error Handlers
 @jwt.unauthorized_loader

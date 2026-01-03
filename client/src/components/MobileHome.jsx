@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Settings, Play, Heart, MoreHorizontal, Menu } from 'lucide-react';
 import { SkeletonCard } from './Skeletons';
 import SongRow from './SongRow';
 
-const MobileHome = ({ user, greeting, feed, playSong, playFlow, toggleLike, addToPlaylist, createPlaylist, setActiveTab, currentSong, isPlaying, likedSongs, playlists, onMenuClick }) => {
+const MobileHome = ({ user, profilePic, greeting, feed, playSong, playFlow, toggleLike, addToPlaylist, createPlaylist, setActiveTab, currentSong, isPlaying, likedSongs, playlists, onMenuClick }) => {
     const [activeFilter, setActiveFilter] = useState('All');
 
     // Filter Logic
@@ -55,7 +55,7 @@ const MobileHome = ({ user, greeting, feed, playSong, playFlow, toggleLike, addT
                             className="w-10 h-10 rounded-full cursor-pointer overflow-hidden"
                         >
                             <img
-                                src={localStorage.getItem("profile_pic") || "https://cdn-icons-png.flaticon.com/512/847/847969.png"}
+                                src={profilePic || "https://cdn-icons-png.flaticon.com/512/847/847969.png"}
                                 className="w-full h-full object-cover"
                                 alt="Profile"
                             />

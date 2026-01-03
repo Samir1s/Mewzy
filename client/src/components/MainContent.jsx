@@ -1,5 +1,5 @@
 import React, { useEffect, useState, memo } from 'react';
-import { Heart, MoreHorizontal, Music, PlayCircle, UploadCloud, CheckCircle, Podcast as PodcastIcon, Trash2, ArrowLeft, Play, Compass, Loader2, ListMusic, Search, PlusCircle, Edit2, User as UserIcon, Globe, TrendingUp, Settings, Upload, UserPlus } from 'lucide-react';
+import { Heart, MoreHorizontal, Music, PlayCircle, UploadCloud, CheckCircle, Podcast as PodcastIcon, Trash2, ArrowLeft, Play, Compass, Loader2, ListMusic, Search, PlusCircle, Edit2, User as UserIcon, Globe, TrendingUp, Settings, Upload, UserPlus, LogOut, LogIn } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
 import API_URL from '../config';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -294,7 +294,7 @@ const PodcastDetail = ({ podcastId, onBack }) => {
 };
 
 // --- 4. PROFILE VIEW ---
-const ProfileView = ({ user, targetId, setViewingProfileId }) => {
+const ProfileView = ({ user, targetId, setViewingProfileId, onLoginClick, onLogoutClick, setProfilePic }) => {
     const { playlists, likedSongs, apiFetch } = usePlayer();
     const [profileData, setProfileData] = useState(null);
     const [editing, setEditing] = useState(false);
@@ -305,6 +305,7 @@ const ProfileView = ({ user, targetId, setViewingProfileId }) => {
     const [newBio, setNewBio] = useState("");
     const [newBanner, setNewBanner] = useState("");
     const [newProfilePic, setNewProfilePic] = useState(null); // URL or File placeholder
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // Security state
 
     // Social Data
     const [friendStatus, setFriendStatus] = useState('none'); // none, friend, sent, received
@@ -398,6 +399,7 @@ const ProfileView = ({ user, targetId, setViewingProfileId }) => {
                 if (type === 'avatar') {
                     setProfileData(prev => ({ ...prev, profile_pic: data.url }));
                     localStorage.setItem('profile_pic', data.url);
+                    if (setProfilePic) setProfilePic(data.url);
                 } else {
                     setProfileData(prev => ({ ...prev, banner_url: data.url }));
                     setNewBanner(data.url);
@@ -448,6 +450,8 @@ const ProfileView = ({ user, targetId, setViewingProfileId }) => {
                             <span className="bg-white/10 px-4 py-2 rounded-full backdrop-blur text-sm font-bold flex gap-2"><Upload size={16} /> Change Cover</span>
                         </label>
                     )}
+
+
                 </div>
 
                 {/* Profile Info */}
@@ -484,11 +488,7 @@ const ProfileView = ({ user, targetId, setViewingProfileId }) => {
                                     {friendStatus === 'friend' && 'Friend'}
                                     {friendStatus === 'received' && 'Remote Request'}
                                 </button>
-                            ) : (
-                                <button disabled className="px-4 py-2 bg-white/5 text-gray-500 rounded-full text-xs font-bold cursor-not-allowed">
-                                    Guest View
-                                </button>
-                            )}
+                            ) : null}
                         </div>
 
                         {editing ? (
@@ -498,6 +498,8 @@ const ProfileView = ({ user, targetId, setViewingProfileId }) => {
                         )}
 
                         {editing && <button onClick={handleUpdate} className="mt-2 px-6 py-2 bg-green-500 text-black font-bold rounded-full text-sm">Save Changes</button>}
+
+
                     </div>
                 </div>
             </div>
@@ -571,13 +573,69 @@ const ProfileView = ({ user, targetId, setViewingProfileId }) => {
                     )}
                 </div>
             </div>
+
+            {/* Footer Actions (Login/Logout) */}
+            <div className="mt-12 mb-8 border-t border-white/5 pt-8 flex justify-center">
+                {isMyProfile && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="w-full md:w-auto flex flex-col items-center gap-3"
+                    >
+                        {showLogoutConfirm ? (
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="flex items-center gap-3 bg-red-500/10 p-2 pr-4 rounded-full border border-red-500/20"
+                            >
+                                <span className="text-red-400 text-xs font-bold pl-3">Are you sure?</span>
+                                <button onClick={onLogoutClick} className="px-4 py-1.5 bg-red-500 text-black text-xs font-bold rounded-full hover:bg-red-400 transition">Yes, Logout</button>
+                                <button onClick={() => setShowLogoutConfirm(false)} className="px-3 py-1.5 bg-transparent text-gray-400 text-xs font-bold hover:text-white transition">Cancel</button>
+                            </motion.div>
+                        ) : (
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setShowLogoutConfirm(true)}
+                                className="px-8 py-3 bg-white/5 text-red-400 rounded-full text-sm font-bold hover:bg-white/10 hover:text-red-300 transition flex items-center gap-3 border border-white/5 w-full md:w-auto justify-center shadow-lg hover:shadow-red-500/10"
+                            >
+                                <LogOut size={16} /> Log Out of @{profileData.username}
+                            </motion.button>
+                        )}
+                    </motion.div>
+                )}
+                {!isLoggedIn && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="text-center space-y-4 bg-gradient-to-b from-[#18181d] to-[#0f0f13] p-10 rounded-[2rem] border border-white/5 w-full max-w-2xl relative overflow-hidden group"
+                    >
+                        <div className="absolute inset-0 bg-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full blur-[80px] pointer-events-none" />
+
+                        <div className="relative z-10">
+                            <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Join the community</h3>
+                            <p className="text-gray-400 text-sm max-w-sm mx-auto mb-6">Log in or sign up to save your playlists, follow friends, and unlock the full experience.</p>
+                            <motion.button
+                                whileHover={{ scale: 1.05, boxShadow: "0 10px 30px -10px rgba(34, 197, 94, 0.5)" }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={onLoginClick}
+                                className="px-10 py-4 bg-green-500 text-black rounded-full text-sm font-black hover:bg-green-400 transition flex items-center gap-3 mx-auto shadow-xl shadow-green-500/20"
+                            >
+                                <LogIn size={18} /> Login / Sign Up
+                            </motion.button>
+                        </div>
+                    </motion.div>
+                )}
+            </div>
         </div>
     );
 };
 
 
 // --- MAIN CONTROLLER ---
-export default function MainContent({ activeTab, setActiveTab, searchQuery, user, onSearch, onMenuClick }) {
+export default function MainContent({ activeTab, setActiveTab, searchQuery, user, onSearch, onMenuClick, onLoginClick, onLogoutClick, profilePic, setProfilePic }) {
     const { playSong, currentSong, isPlaying, likedSongs, toggleLike, playlists, addToPlaylist, createPlaylist, playPlaylist, deletePlaylist, removeFromPlaylist, addToQueue } = usePlayer();
 
     const [feed, setFeed] = useState([]);
@@ -725,7 +783,7 @@ export default function MainContent({ activeTab, setActiveTab, searchQuery, user
     };
 
     const renderContent = () => {
-        if (activeTab === 'Profile') return <ProfileView user={user} targetId={viewingProfileId} setViewingProfileId={(id) => { setViewingProfileId(id); if (id) setActiveTab('Profile'); }} />;
+        if (activeTab === 'Profile') return <ProfileView user={user} targetId={viewingProfileId} setViewingProfileId={(id) => { setViewingProfileId(id); if (id) setActiveTab('Profile'); }} onLoginClick={onLoginClick} onLogoutClick={onLogoutClick} setProfilePic={setProfilePic} />;
         if (activeTab === 'Podcast') return <PodcastSection onOpenPodcast={(id) => setActiveTab(`Podcast:${id}`)} />;
 
         if (typeof activeTab === 'string' && activeTab.startsWith('Podcast:')) {
@@ -931,6 +989,7 @@ export default function MainContent({ activeTab, setActiveTab, searchQuery, user
                 <motion.div variants={container} initial="hidden" animate="show" className="space-y-4 md:space-y-8 relative pb-32">
                     <MobileHome
                         user={user}
+                        profilePic={profilePic}
                         onMenuClick={onMenuClick}
                         greeting={greeting}
                         feed={feed} // Pass full feed for filtering

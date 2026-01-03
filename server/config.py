@@ -9,7 +9,9 @@ class Config:
         SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
         
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'super-secret-key') # TODO: User should change this in .env
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'super-secret-key')
+    if JWT_SECRET_KEY == 'super-secret-key':
+        print("WARNING: You are using the default JWT_SECRET_KEY. Please set it in your .env file for security.")
     
     JWT_TOKEN_LOCATION = ['headers']
     JWT_HEADER_NAME = 'Authorization'
