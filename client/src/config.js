@@ -1,8 +1,10 @@
 // Prioritize Environment Variable (Vite) -> Then Logic
-const API_URL = import.meta.env.VITE_API_URL || (
-    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? "http://127.0.0.1:5000"
-        : "https://mewzy.onrender.com"
-);
+const isProduction = window.location.hostname.includes('vercel.app');
+
+const API_URL = isProduction
+    ? "https://mewzy.onrender.com"
+    : (import.meta.env.VITE_API_URL || "http://127.0.0.1:5000");
+
+console.log("🔍 CONFIG:", { isProduction, Host: window.location.hostname, API_URL });
 
 export default API_URL;
