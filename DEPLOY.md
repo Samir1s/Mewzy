@@ -34,4 +34,5 @@ This guide explains how to deploy the "Mewzy" app using **Vercel** (Frontend), *
 
 ## Troubleshooting
 - **CORS Errors**: Check `FRONTEND_URL` in Render matches your Vercel URL exactly (no trailing slash usually).
-- **Database Errors**: Ensure Supabase allows connections (default is open, but check Network Restrictions).
+- **Database Errors**: Ensure Supabase allows connections.
+- **Password Issues**: If your database password has special characters (like `/`, `#`, or `@`), you MUST URL-encode them in the connection string (e.g., replace `/` with `%2F`). Check your `DATABASE_URL`.
