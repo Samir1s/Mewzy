@@ -3,9 +3,11 @@ import { Play, Pause, SkipBack, SkipForward, ChevronDown, Volume2, VolumeX, More
 import { usePlayer } from '../context/PlayerContext';
 import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import API_URL from '../config';
+import { getImageUrl } from '../utils/urlUtils';
 
 // --- HELPERS (Unchanged) ---
-const getHighResCover = (url) => {
+const getHighResCover = (rawUrl) => {
+    const url = getImageUrl(rawUrl);
     if (!url) return "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80";
     try {
         // Handle googleusercontent (standard yt music host)
@@ -21,13 +23,15 @@ const getHighResCover = (url) => {
     } catch (e) { return url; }
 };
 
+
 // ... (getLowResCover stays same) ...
 
 // ... (inside Player component return) ...
 
 
 
-const getLowResCover = (url) => {
+const getLowResCover = (rawUrl) => {
+    const url = getImageUrl(rawUrl);
     if (!url) return null;
     try {
         if (url.includes('googleusercontent.com')) {
@@ -75,12 +79,20 @@ const boostColorVibrance = (r, g, b) => {
     return { r: Math.round(r1 * 255), g: Math.round(g1 * 255), b: Math.round(b1 * 255) };
 };
 
+
+
 const extractColor = (imgSrc) => {
     return new Promise((resolve) => {
         const img = new Image();
         img.crossOrigin = "Anonymous";
+
+        console.log("🎨 Player.extractColor:", { API_URL, imgSrc });
+
         // Use proxy to avoid CORS/Tainted Canvas issues
-        img.src = `${API_URL}/api/proxy_image?url=${encodeURIComponent(imgSrc)}`;
+        // We use getImageUrl to ensure imgSrc itself is safe, but proxy_image endpoint needs a full URL.
+        // Actually, let's just use API_URL directly but verify it.
+        img.src = `${API_URL}/api/proxy_image?url=${encodeURIComponent(getImageUrl(imgSrc))}`;
+
         img.onload = () => {
             try {
                 const canvas = document.createElement('canvas');
