@@ -10,8 +10,8 @@ export const getImageUrl = (url) => {
     if (!url) return null;
 
     // 1. Check for hardcoded localhost backend URLs
-    // Matches http://localhost:5000 or http://127.0.0.1:5000
-    const localhostRegex = /^(?:https?:\/\/)?(?:localhost|127\.0\.0\.1):5000/;
+    // Matches http://localhost, http://127.0.0.1, with optional ports
+    const localhostRegex = /^(?:https?:\/\/)?(?:localhost|127\.0\.0\.1)(?::\d+)?/;
 
     if (localhostRegex.test(url)) {
         // Strip the localhost part to get the relative path

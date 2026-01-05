@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import API_URL from '../config';
+import { getImageUrl } from '../utils/urlUtils';
 
 const PlayerContext = createContext();
 export const usePlayer = () => useContext(PlayerContext);
@@ -543,9 +544,9 @@ export const PlayerProvider = ({ children }) => {
                 title: currentSong.title,
                 artist: currentSong.artist,
                 artwork: [
-                    { src: currentSong.cover || 'https://via.placeholder.com/96', sizes: '96x96', type: 'image/png' },
-                    { src: currentSong.cover || 'https://via.placeholder.com/128', sizes: '128x128', type: 'image/png' },
-                    { src: currentSong.cover || 'https://via.placeholder.com/512', sizes: '512x512', type: 'image/png' },
+                    { src: getImageUrl(currentSong.cover) || 'https://via.placeholder.com/96', sizes: '96x96', type: 'image/png' },
+                    { src: getImageUrl(currentSong.cover) || 'https://via.placeholder.com/128', sizes: '128x128', type: 'image/png' },
+                    { src: getImageUrl(currentSong.cover) || 'https://via.placeholder.com/512', sizes: '512x512', type: 'image/png' },
                 ]
             });
 
