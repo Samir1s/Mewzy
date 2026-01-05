@@ -1,15 +1,30 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import API_URL from '../config';
-import { getImageUrl } from '../utils/urlUtils';
+import API_URL from '../config';
+import { getImageUrl, fixUrl } from '../utils/urlUtils';
 
 const PlayerContext = createContext();
 export const usePlayer = () => useContext(PlayerContext);
 
 export const PlayerProvider = ({ children }) => {
     // --- PERSISTENCE: HYDRATE STATE FROM LOCALSTORAGE ---
+    // HELPER: Sanitize a song object (fix stale localhost URLs)
+    const sanitizeSong = (song) => {
+        if (!song) return null;
+        return {
+            ...song,
+            cover: fixUrl(song.cover),
+            stream_url: fixUrl(song.stream_url)
+        };
+    };
+
     const [currentSong, setCurrentSong] = useState(() => {
         const saved = localStorage.getItem('last_played_song');
-        return saved ? JSON.parse(saved) : null;
+        if (!saved) return null;
+        try {
+            const parsed = JSON.parse(saved);
+            return sanitizeSong(parsed);
+        } catch (e) { return null; }
     });
     const [isPlaying, setIsPlaying] = useState(false);
     const [playlists, setPlaylists] = useState([]);
@@ -18,7 +33,11 @@ export const PlayerProvider = ({ children }) => {
     // --- QUEUE SYSTEM ---
     const [queue, setQueue] = useState(() => {
         const saved = localStorage.getItem('last_queue');
-        return saved ? JSON.parse(saved) : [];
+        if (!saved) return [];
+        try {
+            const parsed = JSON.parse(saved);
+            return Array.isArray(parsed) ? parsed.map(sanitizeSong) : [];
+        } catch (e) { return []; }
     });
     const [currentIndex, setCurrentIndex] = useState(() => {
         const saved = localStorage.getItem('last_index');

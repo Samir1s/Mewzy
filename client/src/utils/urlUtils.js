@@ -30,3 +30,6 @@ export const getImageUrl = (url) => {
     // 3. Return others as is (e.g., https://lh3.googleusercontent.com..., or already correct https://mewzy.onrender.com...)
     return url;
 };
+
+// Alias for semantic clarity when fixing non-image URLs (like streams)
+export const fixUrl = getImageUrl;
