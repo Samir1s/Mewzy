@@ -87,6 +87,37 @@ def stream_track(video_id):
                 except Exception as ex:
                     print(f"Strategy 3 ({host}) failed: {ex}")
 
+        # Strategy 4: Invidious API (Final Fallback)
+        if not url:
+            invidious_instances = [
+                "https://inv.tux.pizza",
+                "https://invidious.jing.rocks",
+                "https://invidious.nerdvpn.de",
+                "https://vid.uff.anzeige.io"
+            ]
+            for host in invidious_instances:
+                try:
+                    print(f"Strategy 4 (Invidious): Trying {host}...")
+                    inv_res = requests.get(f"{host}/api/v1/videos/{video_id}", timeout=5)
+                    if inv_res.status_code == 200:
+                        data = inv_res.json()
+                        if 'formatStreams' in data:
+                            # Filter for audio/mpeg or mp4 audio
+                            audio_streams = [s for s in data['formatStreams'] if s.get('type') and ('audio/mpeg' in s['type'] or 'mp4' in s['type'])]
+                            # If no explicit audio streams (Invidious sometimes mixes), check adaptiveFormats
+                            if not audio_streams and 'adaptiveFormats' in data:
+                                audio_streams = [s for s in data['adaptiveFormats'] if s.get('type') and ('audio/mpeg' in s['type'] or 'mp4' in s['type'])]
+                            
+                            if audio_streams:
+                                # Sort by bitrate/quality
+                                # Invidious uses 'bitrate' (sometimes string) or 'qualityLabel'
+                                # Safer to just take the first one or try to parse bitrate
+                                url = audio_streams[0]['url']
+                                print(f"Strategy 4 Success: Found URL via {host}")
+                                break
+                except Exception as ex:
+                    print(f"Strategy 4 ({host}) failed: {ex}")
+
         if not url:
             return jsonify({'error': 'All streaming strategies failed'}), 500
         
