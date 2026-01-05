@@ -75,15 +75,16 @@ def stream_track(video_id):
         # Strategy 3: Cobalt API (High Reliability)
         if not url:
             try:
+                # Cobalt's main API endpoint
                 cobalt_headers = {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 }
+                # Correct payload for audio
                 payload = {
                     'url': f'https://www.youtube.com/watch?v={video_id}',
-                    'aFormat': 'mp3',
-                    'isAudioOnly': True
+                    'downloadMode': 'audio'
                 }
                 print(f"Strategy 3 (Cobalt): Requesting...")
                 cobalt_res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers=cobalt_headers, timeout=6)
@@ -95,13 +96,13 @@ def stream_track(video_id):
             except Exception as e:
                 print(f"Strategy 3 (Cobalt) failed: {e}")
 
-        # Strategy 4: Piped API (Multi-Instance Fallback)
+        # Strategy 4: Piped API (Multi-Instance Fallback - Updated Verified List)
         if not url:
             piped_instances = [
-                "https://pipedapi.kavin.rocks",
-                "https://pipedapi.system41.cl", 
-                "https://api.piped.privacydev.net",
-                "https://pipedapi.drgns.space"
+                "https://piped.video",            # Official
+                "https://piped.mha.fi",           # Reliable
+                "https://piped.smnz.de",          # Reliable
+                "https://piped.kavin.rocks"       # Fallback
             ]
             for host in piped_instances:
                 try:
@@ -109,7 +110,7 @@ def stream_track(video_id):
                     piped_res = requests.get(f"{host}/streams/{video_id}", timeout=4)
                     if piped_res.status_code == 200:
                         data = piped_res.json()
-                        audio_streams = [s for s in data['audioStreams'] if s['mimeType'] == 'audio/mpeg' or 'mp4' in s['mimeType']]
+                        audio_streams = [s for s in data.get('audioStreams', []) if s.get('mimeType') and ('audio/mpeg' in s['mimeType'] or 'mp4' in s['mimeType'])]
                         if audio_streams:
                             audio_streams.sort(key=lambda x: x.get('bitrate', 0), reverse=True)
                             url = audio_streams[0]['url']
@@ -118,13 +119,13 @@ def stream_track(video_id):
                 except Exception as ex:
                     print(f"Strategy 4 ({host}) failed: {ex}")
 
-        # Strategy 5: Invidious API (Final Fallback)
+        # Strategy 5: Invidious API (Final Fallback - Updated Verified List)
         if not url:
             invidious_instances = [
-                "https://inv.tux.pizza",
-                "https://invidious.jing.rocks",
-                "https://invidious.nerdvpn.de",
-                "https://vid.uff.anzeige.io"
+                "https://inv.nadeko.net",
+                "https://invidious.privacyredirect.com",
+                "https://yewtu.be",
+                "https://invidious.f5.si"
             ]
             for host in invidious_instances:
                 try:
@@ -282,8 +283,7 @@ def debug_stream(video_id):
                 }
                 payload = {
                     'url': f'https://www.youtube.com/watch?v={video_id}',
-                    'aFormat': 'mp3',
-                    'isAudioOnly': True
+                    'downloadMode': 'audio'
                 }
                 cobalt_res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers=cobalt_headers, timeout=6)
                 log(f"Cobalt Status: {cobalt_res.status_code}")
@@ -302,10 +302,10 @@ def debug_stream(video_id):
         # Strategy 4: Piped
         if not success_url:
             piped_instances = [
-                "https://pipedapi.kavin.rocks",
-                "https://pipedapi.system41.cl", 
-                "https://api.piped.privacydev.net",
-                "https://pipedapi.drgns.space"
+                "https://piped.video",
+                "https://piped.mha.fi",
+                "https://piped.smnz.de",
+                "https://piped.kavin.rocks"
             ]
             for host in piped_instances:
                 try:
@@ -327,10 +327,10 @@ def debug_stream(video_id):
         # Strategy 5: Invidious
         if not success_url:
             invidious_instances = [
-                "https://inv.tux.pizza",
-                "https://invidious.jing.rocks",
-                "https://invidious.nerdvpn.de",
-                "https://vid.uff.anzeige.io"
+                "https://inv.nadeko.net",
+                "https://invidious.privacyredirect.com",
+                "https://yewtu.be",
+                "https://invidious.f5.si"
             ]
             for host in invidious_instances:
                 try:
