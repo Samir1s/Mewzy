@@ -1,7 +1,7 @@
 import os
 import glob
 import requests
-from flask import Blueprint, jsonify, request, make_response
+from flask import Blueprint, jsonify, request, make_response, Response
 from yt_dlp import YoutubeDL
 from ytmusicapi import YTMusic
 from server.config import Config
@@ -32,78 +32,45 @@ def proxy_image():
 
 @player_bp.route('/stream/<video_id>')
 def stream_track(video_id):
-    file_path = None
-    
-    for ext in ALLOWED_EXTENSIONS:
-        temp_path = os.path.join(Config.UPLOAD_FOLDER, f"{video_id}.{ext}")
-        if os.path.exists(temp_path):
-            file_path = temp_path
-            break
+    try:
+        # 1. Get Direct Stream URL
+        with YoutubeDL({'quiet': True, 'format': 'bestaudio/best'}) as ydl:
+            info = ydl.extract_info(video_id, download=False)
+            url = info['url']
+        
+        # 2. Prepare headers (Forward Range for seeking)
+        headers = {}
+        range_header = request.headers.get('Range')
+        if range_header:
+            headers['Range'] = range_header
+            
+        # 3. Stream from YouTube
+        def generate():
+            with requests.get(url, headers=headers, stream=True) as r:
+                for chunk in r.iter_content(chunk_size=4096):
+                    if chunk: yield chunk
 
-    if not file_path:
-        try:
-            ydl_opts = {
-                'format': 'bestaudio/best',
-                'outtmpl': os.path.join(Config.UPLOAD_FOLDER, f'{video_id}.%(ext)s'),
-                'quiet': True,
-                'no_warnings': True,
-                'nocheckcertificate': True,
+        # 4. Create Response
+        # We need to make a preliminary request to get correct Content-Length/Type for the response headers
+        # or just trust the proxy. For speed, we start the request inside generate but we need headers first.
+        # Better approach: Make the request, then stream the response object.
+        
+        req = requests.get(url, headers=headers, stream=True)
+        return Response(
+            req.iter_content(chunk_size=4096),
+            status=req.status_code,
+            headers={
+                'Content-Type': req.headers.get('Content-Type', 'audio/mpeg'),
+                'Content-Length': req.headers.get('Content-Length'),
+                'Content-Range': req.headers.get('Content-Range'),
+                'Accept-Ranges': 'bytes',
+                'Access-Control-Allow-Origin': '*'
             }
-            with YoutubeDL(ydl_opts) as ydl:
-                ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
+        )
 
-            found = glob.glob(os.path.join(Config.UPLOAD_FOLDER, f"{video_id}.*"))
-            if found:
-                file_path = found[0]
-            else:
-                return jsonify({'error': 'Download failed'}), 500
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-
-    range_header = request.headers.get('Range', None)
-    if not os.path.exists(file_path):
-        return jsonify({'error': 'File not found'}), 404
-
-    file_size = os.path.getsize(file_path)
-    start = 0
-    end = file_size - 1
-
-    if range_header:
-        try:
-            ranges = range_header.strip().split('=')[1]
-            start_str, end_str = ranges.split('-')
-            if start_str: start = int(start_str)
-            if end_str: end = int(end_str)
-        except Exception:
-            start = 0
-            end = file_size - 1
-
-    if start > end or start >= file_size:
-        return jsonify({'error': 'Invalid range'}), 416
-
-    length = end - start + 1
-
-    def generate():
-        with open(file_path, 'rb') as f:
-            f.seek(start)
-            remaining = length
-            chunk_size = 8192
-            while remaining > 0:
-                read_size = min(chunk_size, remaining)
-                data = f.read(read_size)
-                if not data: break
-                remaining -= len(data)
-                yield data
-
-    rv = make_response(generate(), 206 if range_header else 200)
-    rv.headers.add('Content-Type', 'audio/mpeg')
-    rv.headers.add('Accept-Ranges', 'bytes')
-    rv.headers.add('Content-Length', str(length))
-    if range_header:
-        rv.headers.add('Content-Range', f'bytes {start}-{end}/{file_size}')
-        rv.status_code = 206
-    rv.headers['Access-Control-Allow-Origin'] = '*'
-    return rv
+    except Exception as e:
+        print(f"Stream Error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @player_bp.route('/lyrics/<video_id>', methods=['GET'])
 def get_lyrics(video_id):
