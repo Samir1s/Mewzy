@@ -23,7 +23,7 @@ export const getImageUrl = (url) => {
         // Strip the localhost part to get the relative path
         const relative = url.replace(localhostRegex, '');
         const finalUrl = `${EFFECTIVE_API_URL}${relative}`;
-        // console.log(`[URL Fix] Converted ${url} -> ${finalUrl}`);
+        console.log(`[URL Fix] Converted ${url} -> ${finalUrl}`);
         return finalUrl;
     }
 

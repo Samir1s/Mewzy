@@ -86,12 +86,10 @@ const extractColor = (imgSrc) => {
         const img = new Image();
         img.crossOrigin = "Anonymous";
 
-        console.log("🎨 Player.extractColor:", { API_URL, imgSrc, convertedUrl: getImageUrl(imgSrc) });
-
-        // Use proxy to avoid CORS/Tainted Canvas issues
-        // We use getImageUrl to ensure imgSrc itself is safe, but proxy_image endpoint needs a full URL.
-        // Actually, let's just use API_URL directly but verify it.
-        const proxyUrl = `${API_URL}/api/proxy_image?url=${encodeURIComponent(getImageUrl(imgSrc))}`;
+        const hostname = window.location.hostname;
+        const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+        const effectiveApiUrl = isLocal ? API_URL : "https://mewzy.onrender.com";
+        const proxyUrl = `${effectiveApiUrl}/api/proxy_image?url=${encodeURIComponent(getImageUrl(imgSrc))}`;
         console.log("🎨 Player.extractColor request:", proxyUrl);
         img.src = proxyUrl;
 
