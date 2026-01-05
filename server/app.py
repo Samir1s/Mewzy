@@ -100,25 +100,27 @@ app.register_blueprint(social_bp, url_prefix='/api')
 with app.app_context():
     db.create_all()
     # Migration helper for profile_pic + bio + banner
-    with db.engine.connect() as conn:
-        try:
-            # Quote "user" for PostgreSQL compatibility
+    # We use separate connections/transactions for each to avoid "current transaction is aborted" errors
+    try:
+        with db.engine.begin() as conn:
             conn.execute(db.text('ALTER TABLE "user" ADD COLUMN profile_pic VARCHAR(500) DEFAULT \'https://cdn-icons-png.flaticon.com/512/847/847969.png\''))
             print("Added profile_pic column")
-        except Exception as e: 
-            print(f"Skipping profile_pic: {e}")
+    except Exception as e: 
+        print(f"Skipping profile_pic (exists or error): {e}")
 
-        try:
+    try:
+        with db.engine.begin() as conn:
             conn.execute(db.text('ALTER TABLE "user" ADD COLUMN bio TEXT'))
             print("Added bio column")
-        except Exception as e: 
-            print(f"Skipping bio: {e}")
+    except Exception as e: 
+        print(f"Skipping bio (exists or error): {e}")
 
-        try:
+    try:
+        with db.engine.begin() as conn:
             conn.execute(db.text('ALTER TABLE "user" ADD COLUMN banner_url VARCHAR(500)'))
             print("Added banner_url column")
-        except Exception as e: 
-            print(f"Skipping banner_url: {e}")
+    except Exception as e: 
+        print(f"Skipping banner_url (exists or error): {e}")
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

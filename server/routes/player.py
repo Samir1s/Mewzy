@@ -64,21 +64,28 @@ def stream_track(video_id):
             except Exception as e:
                 print(f"Strategy 2 (Android) failed: {e}")
 
-        # Strategy 3: Piped API (Public Instance Fallback)
+        # Strategy 3: Piped API (Multi-Instance Fallback)
         if not url:
-            try:
-                # Use a reliable Piped instance
-                piped_res = requests.get(f"https://pipedapi.kavin.rocks/streams/{video_id}", timeout=5)
-                if piped_res.status_code == 200:
-                    data = piped_res.json()
-                    # Find best audio stream
-                    audio_streams = [s for s in data['audioStreams'] if s['mimeType'] == 'audio/mpeg' or 'mp4' in s['mimeType']]
-                    if audio_streams:
-                        # Sort by bitrate descending
-                        audio_streams.sort(key=lambda x: x.get('bitrate', 0), reverse=True)
-                        url = audio_streams[0]['url']
-            except Exception as e:
-                print(f"Strategy 3 (Piped) failed: {e}")
+            piped_instances = [
+                "https://pipedapi.kavin.rocks",
+                "https://api.piped.otspace.net", 
+                "https://pipedapi.tokhmi.xyz",
+                "https://api.piped.privacy.com.de"
+            ]
+            for host in piped_instances:
+                try:
+                    print(f"Strategy 3 (Piped): Trying {host}...")
+                    piped_res = requests.get(f"{host}/streams/{video_id}", timeout=4)
+                    if piped_res.status_code == 200:
+                        data = piped_res.json()
+                        audio_streams = [s for s in data['audioStreams'] if s['mimeType'] == 'audio/mpeg' or 'mp4' in s['mimeType']]
+                        if audio_streams:
+                            audio_streams.sort(key=lambda x: x.get('bitrate', 0), reverse=True)
+                            url = audio_streams[0]['url']
+                            print(f"Strategy 3 Success: Found URL via {host}")
+                            break
+                except Exception as ex:
+                    print(f"Strategy 3 ({host}) failed: {ex}")
 
         if not url:
             return jsonify({'error': 'All streaming strategies failed'}), 500
