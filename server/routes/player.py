@@ -33,53 +33,72 @@ def proxy_image():
 @player_bp.route('/stream/<video_id>')
 def stream_track(video_id):
     try:
-        # 1. Get Direct Stream URL
-        ydl_opts = {
-            'quiet': True,
-            'format': 'bestaudio/best',
-            'nocheckcertificate': True,
-            # 'ios' client often avoids age-gates/throttling in data centers
-            'extractor_args': {'youtube': {'player_client': ['ios']}} 
-        }
-        with YoutubeDL(ydl_opts) as ydl:
-            try:
-                info = ydl.extract_info(video_id, download=False)
-                url = info['url']
-            except Exception as e:
-                # Fallback to standard client if ios fails
-                print(f"iOS client failed, retrying default: {e}")
-                ydl.params['extractor_args'] = {}
-                info = ydl.extract_info(video_id, download=False)
-                url = info['url']
+        url = None
         
-        # 2. Prepare headers
-        # Use a real browser User-Agent to avoid 403 Forbidden from Google Video servers
+        # Strategy 1: YoutubeDL (iOS Client)
+        try:
+            ydl_opts = {
+                'quiet': True,
+                'format': 'bestaudio/best',
+                'nocheckcertificate': True,
+                'extractor_args': {'youtube': {'player_client': ['ios']}}
+            }
+            with YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(video_id, download=False)
+                url = info.get('url')
+        except Exception as e:
+            print(f"Strategy 1 (iOS) failed: {e}")
+
+        # Strategy 2: YoutubeDL (Android Client)
+        if not url:
+            try:
+                ydl_opts = {
+                    'quiet': True,
+                    'format': 'bestaudio/best',
+                    'nocheckcertificate': True,
+                    'extractor_args': {'youtube': {'player_client': ['android']}}
+                }
+                with YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(video_id, download=False)
+                    url = info.get('url')
+            except Exception as e:
+                print(f"Strategy 2 (Android) failed: {e}")
+
+        # Strategy 3: Piped API (Public Instance Fallback)
+        if not url:
+            try:
+                # Use a reliable Piped instance
+                piped_res = requests.get(f"https://pipedapi.kavin.rocks/streams/{video_id}", timeout=5)
+                if piped_res.status_code == 200:
+                    data = piped_res.json()
+                    # Find best audio stream
+                    audio_streams = [s for s in data['audioStreams'] if s['mimeType'] == 'audio/mpeg' or 'mp4' in s['mimeType']]
+                    if audio_streams:
+                        # Sort by bitrate descending
+                        audio_streams.sort(key=lambda x: x.get('bitrate', 0), reverse=True)
+                        url = audio_streams[0]['url']
+            except Exception as e:
+                print(f"Strategy 3 (Piped) failed: {e}")
+
+        if not url:
+            return jsonify({'error': 'All streaming strategies failed'}), 500
+        
+        # 2. Prepare headers with browser impersonation
         proxy_headers = {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
-            'Accept': '*/*'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': '*/*',
+            'Referer': 'https://www.youtube.com/'
         }
         
         range_header = request.headers.get('Range')
         if range_header:
             proxy_headers['Range'] = range_header
 
-        # 3. Stream from YouTube (Forwarding headers)
-        def generate():
-            with requests.get(url, headers=proxy_headers, stream=True) as r:
-                # If upstream returns 403, we must fail gracefully
-                if r.status_code == 403:
-                    # In a generator we can't easily change the status code, 
-                    # but we can stop yielding. The client will just hear silence/error.
-                    return
-                for chunk in r.iter_content(chunk_size=4096):
-                    if chunk: yield chunk
-
-        # 4. Create Response
-        req = requests.get(url, headers=proxy_headers, stream=True)
+        # 3. Create Response (Stream Proxy)
+        req = requests.get(url, headers=proxy_headers, stream=True, timeout=10)
         
-        # If the video server blocks us, return 500 text
-        if req.status_code == 403:
-            return jsonify({'error': 'Upstream Forbidden (403)'}), 500
+        if req.status_code in [403, 410]:
+             return jsonify({'error': f'Upstream Error ({req.status_code})'}), 500
             
         return Response(
             req.iter_content(chunk_size=4096),
