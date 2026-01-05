@@ -10,6 +10,14 @@ player_bp = Blueprint('player', __name__)
 yt = YTMusic()
 ALLOWED_EXTENSIONS = {'mp3', 'wav', 'ogg', 'm4a'}
 
+@player_bp.route('/version')
+def version():
+    return jsonify({
+        'version': '1.5.0', 
+        'strategies': ['ios', 'android', 'cobalt', 'piped', 'invidious'],
+        'status': 'active'
+    })
+
 @player_bp.route('/proxy_image')
 def proxy_image():
     url = request.args.get('url')
