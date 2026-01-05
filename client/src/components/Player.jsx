@@ -91,7 +91,9 @@ const extractColor = (imgSrc) => {
         // Use proxy to avoid CORS/Tainted Canvas issues
         // We use getImageUrl to ensure imgSrc itself is safe, but proxy_image endpoint needs a full URL.
         // Actually, let's just use API_URL directly but verify it.
-        img.src = `${API_URL}/api/proxy_image?url=${encodeURIComponent(getImageUrl(imgSrc))}`;
+        const proxyUrl = `${API_URL}/api/proxy_image?url=${encodeURIComponent(getImageUrl(imgSrc))}`;
+        console.log("🎨 Player.extractColor request:", proxyUrl);
+        img.src = proxyUrl;
 
         img.onload = () => {
             try {
