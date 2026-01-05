@@ -86,6 +86,11 @@ export default function App() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const handleLogin = (data) => {
+        // HARDENING
+        if (data.profile_pic) {
+            data.profile_pic = fixUrl(data.profile_pic);
+            localStorage.setItem("profile_pic", data.profile_pic);
+        }
         setUser(data.username);
         setProfilePic(data.profile_pic);
     };

@@ -191,16 +191,21 @@ export const PlayerProvider = ({ children }) => {
 
     // Force Play param added to bypass toggle logic (Prevent 'Previous' button pause bug)
     const playSong = async (song, sourceList = null, forcePlay = false) => {
-        if (currentSong?.id === song.id && audioRef.current.src && !forcePlay) return togglePlay();
-        // If forcePlay is true and it's same song, we just restart usually, but we handle that in prevSong. 
-        // If forcePlay is true, we proceed to load/play even if same ID (implicit restart logic below)
+        if (!song) return;
+
+        // HARDENING: Sanitize song immediately upon entry
+        const cleanSong = sanitizeSong(song);
+
+        if (currentSong?.id === cleanSong.id && audioRef.current.src && !forcePlay) return togglePlay();
 
         if (sourceList && Array.isArray(sourceList)) {
-            setQueue(sourceList);
-            const idx = sourceList.findIndex(s => s.id === song.id);
+            // Sanitize list too
+            const cleanList = sourceList.map(sanitizeSong);
+            setQueue(cleanList);
+            const idx = cleanList.findIndex(s => s.id === cleanSong.id);
             setCurrentIndex(idx !== -1 ? idx : 0);
         } else if (queue.length > 0) {
-            const idx = queue.findIndex(s => s.id === song.id);
+            const idx = queue.findIndex(s => s.id === cleanSong.id);
             if (idx !== -1) setCurrentIndex(idx);
         }
 
@@ -209,11 +214,11 @@ export const PlayerProvider = ({ children }) => {
         // New song always starts at 0 unless we are resuming (which is handled by initial effect, not playSong)
         let startPosition = 0;
 
-        setCurrentSong(song);
+        setCurrentSong(cleanSong);
         setIsPlaying(true);
 
         audioRef.current.crossOrigin = "anonymous";
-        audioRef.current.src = song.stream_url;
+        audioRef.current.src = cleanSong.stream_url;
 
         // History Update
         try {
