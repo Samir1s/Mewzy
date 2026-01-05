@@ -86,7 +86,7 @@ const extractColor = (imgSrc) => {
         const img = new Image();
         img.crossOrigin = "Anonymous";
 
-        console.log("🎨 Player.extractColor:", { API_URL, imgSrc });
+        console.log("🎨 Player.extractColor:", { API_URL, imgSrc, convertedUrl: getImageUrl(imgSrc) });
 
         // Use proxy to avoid CORS/Tainted Canvas issues
         // We use getImageUrl to ensure imgSrc itself is safe, but proxy_image endpoint needs a full URL.
