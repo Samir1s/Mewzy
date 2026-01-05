@@ -2,13 +2,15 @@ import React from 'react';
 import { useHistory } from '../hooks/useHistory';
 import { usePlayer } from '../context/PlayerContext';
 import { Trash2 } from 'lucide-react';
+import { getImageUrl } from '../utils/urlUtils';
 
 
 export default function RightSidebar() {
    const { recent, loading, error, deleteItem, playItem } = useHistory();
    const { currentSong } = usePlayer();
 
-   const getThumb = (url) => {
+   const getThumb = (rawUrl) => {
+      const url = getImageUrl(rawUrl);
       if (!url) return null;
       try {
          if (url.includes('googleusercontent.com')) return url.replace(/=[^=]*$/, '=s120-c');

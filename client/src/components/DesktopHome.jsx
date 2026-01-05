@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Play, Heart, Compass, PlayCircle, ListMusic } from 'lucide-react';
 import SongRow from './SongRow';
+import { getImageUrl } from '../utils/urlUtils';
 
 const DesktopHome = ({ greeting, heroItem, gridItems, listItems, playSong, playFlow, toggleLike, addToPlaylist, currentSong, isPlaying, likedSongs, playlists, feed }) => {
 
@@ -55,7 +56,7 @@ const DesktopHome = ({ greeting, heroItem, gridItems, listItems, playSong, playF
                 <motion.div variants={itemAnim} className="relative w-full h-72 rounded-[2rem] overflow-hidden group shadow-2xl transition-all transform hover:scale-[1.005] ring-1 ring-white/10 hover:ring-white/20">
                     {/* Background */}
                     <div className="absolute inset-0">
-                        <img src={heroItem.cover} className="w-full h-full object-cover blur-2xl opacity-50 scale-110" alt="bg" />
+                        <img src={getImageUrl(heroItem.cover)} className="w-full h-full object-cover blur-2xl opacity-50 scale-110" alt="bg" />
                         <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/20 to-transparent" />
                         <div className="absolute inset-0 bg-gradient-to-r from-[#121212] via-black/50 to-transparent" />
                     </div>
@@ -64,7 +65,7 @@ const DesktopHome = ({ greeting, heroItem, gridItems, listItems, playSong, playF
                     <div className="relative h-full flex items-center p-6 md:p-8 z-10">
                         <div className="flex gap-6 items-center w-full max-w-6xl mx-auto">
                             <div className="relative shrink-0 group-hover:scale-105 transition duration-500 shadow-2xl rounded-2xl">
-                                <img src={heroItem.cover} className="w-48 h-48 rounded-2xl object-cover hidden md:block shadow-lg" alt={heroItem.title} />
+                                <img src={getImageUrl(heroItem.cover)} className="w-48 h-48 rounded-2xl object-cover hidden md:block shadow-lg" alt={heroItem.title} />
                                 <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-2xl"></div>
                             </div>
 
@@ -99,7 +100,7 @@ const DesktopHome = ({ greeting, heroItem, gridItems, listItems, playSong, playF
                         {gridItems.map((item) => (
                             <div key={item.id} onClick={() => playSong(item, feed)} className="group relative bg-white/5 p-3 rounded-2xl border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-xl">
                                 <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-md group-hover:shadow-lg transition-shadow">
-                                    <img src={item.cover} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt={item.title} />
+                                    <img src={getImageUrl(item.cover)} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt={item.title} />
                                     <div className="absolute inset-0 ring-1 ring-inset ring-white/5 rounded-xl"></div>
                                     <div className="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors" />
                                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

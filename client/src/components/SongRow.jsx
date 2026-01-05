@@ -1,5 +1,6 @@
 import React, { useState, memo } from 'react';
 import { Heart, MoreHorizontal, ListPlus } from 'lucide-react';
+import { getImageUrl } from '../utils/urlUtils';
 
 const DEFAULT_IMG = "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&q=80";
 
@@ -13,7 +14,7 @@ const SongRow = memo(({ song, index, isPlaying, isActive, onPlay, onLike, isLike
             {/* Title + Image */}
             <div className="flex items-center gap-3 overflow-hidden min-w-0">
                 <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
-                    <img src={song.cover || DEFAULT_IMG} onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_IMG; }} className="w-10 h-10 rounded-lg object-cover" alt={song.title} />
+                    <img src={getImageUrl(song.cover) || DEFAULT_IMG} onError={(e) => { e.target.onerror = null; e.target.src = DEFAULT_IMG; }} className="w-10 h-10 rounded-lg object-cover" alt={song.title} />
                     {isActive && (
                         <div className="absolute inset-0 flex items-center justify-center">
                             <div className="w-full h-full bg-black/30 rounded-lg" />

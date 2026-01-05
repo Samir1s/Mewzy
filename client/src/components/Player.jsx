@@ -86,10 +86,8 @@ const extractColor = (imgSrc) => {
         const img = new Image();
         img.crossOrigin = "Anonymous";
 
-        const hostname = window.location.hostname;
-        const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
-        const effectiveApiUrl = isLocal ? API_URL : "https://mewzy.onrender.com";
-        const proxyUrl = `${effectiveApiUrl}/api/proxy_image?url=${encodeURIComponent(getImageUrl(imgSrc))}`;
+        // Use the centralized API_URL directly
+        const proxyUrl = `${API_URL}/api/proxy_image?url=${encodeURIComponent(getImageUrl(imgSrc))}`;
         console.log("🎨 Player.extractColor request:", proxyUrl);
         img.src = proxyUrl;
 

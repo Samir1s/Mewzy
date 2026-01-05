@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Search, Settings, Play, Heart, MoreHorizontal, Menu } from 'lucide-react';
 import { SkeletonCard } from './Skeletons';
 import SongRow from './SongRow';
+import { getImageUrl } from '../utils/urlUtils';
 
 const MobileHome = ({ user, profilePic, greeting, feed, playSong, playFlow, toggleLike, addToPlaylist, createPlaylist, setActiveTab, currentSong, isPlaying, likedSongs, playlists, onMenuClick }) => {
     const [activeFilter, setActiveFilter] = useState('All');
@@ -55,7 +56,7 @@ const MobileHome = ({ user, profilePic, greeting, feed, playSong, playFlow, togg
                             className="w-10 h-10 rounded-full cursor-pointer overflow-hidden"
                         >
                             <img
-                                src={profilePic || "https://cdn-icons-png.flaticon.com/512/847/847969.png"}
+                                src={getImageUrl(profilePic) || "https://cdn-icons-png.flaticon.com/512/847/847969.png"}
                                 className="w-full h-full object-cover"
                                 alt="Profile"
                             />
@@ -182,7 +183,7 @@ const MobileHome = ({ user, profilePic, greeting, feed, playSong, playFlow, togg
                                 {/* Artist Image Masked */}
                                 <div className="absolute right-[-10px] bottom-[-10px] w-40 h-44">
                                     <img
-                                        src={heroItem.cover}
+                                        src={getImageUrl(heroItem.cover)}
                                         className="w-full h-full object-cover rounded-tl-[3rem] shadow-[-10px_-10px_30px_rgba(0,0,0,0.3)] saturate-[1.1]"
                                         style={{ maskImage: 'linear-gradient(to bottom, black 85%, transparent)' }}
                                         alt="Cover"
@@ -249,7 +250,7 @@ const MobileHome = ({ user, profilePic, greeting, feed, playSong, playFlow, togg
                             className="snap-start shrink-0 w-36 flex flex-col gap-3 group cursor-pointer"
                         >
                             <div className="aspect-square rounded-[1.5rem] overflow-hidden relative shadow-lg">
-                                <img src={item.cover} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" alt={item.title} />
+                                <img src={getImageUrl(item.cover)} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" alt={item.title} />
                                 <div className="absolute inset-0 bg-black/10 group-active:bg-black/20 transition-colors"></div>
                             </div>
                             <div className="px-1">
