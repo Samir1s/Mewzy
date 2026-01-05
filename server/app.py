@@ -102,19 +102,20 @@ with app.app_context():
     # Migration helper for profile_pic + bio + banner
     with db.engine.connect() as conn:
         try:
-            conn.execute(db.text("ALTER TABLE user ADD COLUMN profile_pic VARCHAR(500) DEFAULT 'https://cdn-icons-png.flaticon.com/512/847/847969.png'"))
+            # Quote "user" for PostgreSQL compatibility
+            conn.execute(db.text('ALTER TABLE "user" ADD COLUMN profile_pic VARCHAR(500) DEFAULT \'https://cdn-icons-png.flaticon.com/512/847/847969.png\''))
             print("Added profile_pic column")
         except Exception as e: 
             print(f"Skipping profile_pic: {e}")
 
         try:
-            conn.execute(db.text("ALTER TABLE user ADD COLUMN bio TEXT"))
+            conn.execute(db.text('ALTER TABLE "user" ADD COLUMN bio TEXT'))
             print("Added bio column")
         except Exception as e: 
             print(f"Skipping bio: {e}")
 
         try:
-            conn.execute(db.text("ALTER TABLE user ADD COLUMN banner_url VARCHAR(500)"))
+            conn.execute(db.text('ALTER TABLE "user" ADD COLUMN banner_url VARCHAR(500)'))
             print("Added banner_url column")
         except Exception as e: 
             print(f"Skipping banner_url: {e}")
