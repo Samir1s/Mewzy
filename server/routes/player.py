@@ -64,17 +64,40 @@ def stream_track(video_id):
             except Exception as e:
                 print(f"Strategy 2 (Android) failed: {e}")
 
-        # Strategy 3: Piped API (Multi-Instance Fallback)
+        # Strategy 3: Cobalt API (High Reliability)
+        if not url:
+            try:
+                cobalt_headers = {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+                payload = {
+                    'url': f'https://www.youtube.com/watch?v={video_id}',
+                    'aFormat': 'mp3',
+                    'isAudioOnly': True
+                }
+                print(f"Strategy 3 (Cobalt): Requesting...")
+                cobalt_res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers=cobalt_headers, timeout=6)
+                if cobalt_res.status_code == 200:
+                    data = cobalt_res.json()
+                    if 'url' in data:
+                        url = data['url']
+                        print(f"Strategy 3 Success: Found URL via Cobalt")
+            except Exception as e:
+                print(f"Strategy 3 (Cobalt) failed: {e}")
+
+        # Strategy 4: Piped API (Multi-Instance Fallback)
         if not url:
             piped_instances = [
                 "https://pipedapi.kavin.rocks",
-                "https://api.piped.otspace.net", 
-                "https://pipedapi.tokhmi.xyz",
-                "https://api.piped.privacy.com.de"
+                "https://pipedapi.system41.cl", 
+                "https://api.piped.privacydev.net",
+                "https://pipedapi.drgns.space"
             ]
             for host in piped_instances:
                 try:
-                    print(f"Strategy 3 (Piped): Trying {host}...")
+                    print(f"Strategy 4 (Piped): Trying {host}...")
                     piped_res = requests.get(f"{host}/streams/{video_id}", timeout=4)
                     if piped_res.status_code == 200:
                         data = piped_res.json()
@@ -82,12 +105,12 @@ def stream_track(video_id):
                         if audio_streams:
                             audio_streams.sort(key=lambda x: x.get('bitrate', 0), reverse=True)
                             url = audio_streams[0]['url']
-                            print(f"Strategy 3 Success: Found URL via {host}")
+                            print(f"Strategy 4 Success: Found URL via {host}")
                             break
                 except Exception as ex:
-                    print(f"Strategy 3 ({host}) failed: {ex}")
+                    print(f"Strategy 4 ({host}) failed: {ex}")
 
-        # Strategy 4: Invidious API (Final Fallback)
+        # Strategy 5: Invidious API (Final Fallback)
         if not url:
             invidious_instances = [
                 "https://inv.tux.pizza",
@@ -97,7 +120,7 @@ def stream_track(video_id):
             ]
             for host in invidious_instances:
                 try:
-                    print(f"Strategy 4 (Invidious): Trying {host}...")
+                    print(f"Strategy 5 (Invidious): Trying {host}...")
                     inv_res = requests.get(f"{host}/api/v1/videos/{video_id}", timeout=5)
                     if inv_res.status_code == 200:
                         data = inv_res.json()
@@ -113,10 +136,10 @@ def stream_track(video_id):
                                 # Invidious uses 'bitrate' (sometimes string) or 'qualityLabel'
                                 # Safer to just take the first one or try to parse bitrate
                                 url = audio_streams[0]['url']
-                                print(f"Strategy 4 Success: Found URL via {host}")
+                                print(f"Strategy 5 Success: Found URL via {host}")
                                 break
                 except Exception as ex:
-                    print(f"Strategy 4 ({host}) failed: {ex}")
+                    print(f"Strategy 5 ({host}) failed: {ex}")
 
         if not url:
             return jsonify({'error': 'All streaming strategies failed'}), 500
