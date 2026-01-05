@@ -458,6 +458,10 @@ export default function Player() {
         return `${m}:${s < 10 ? "0" + s : s}`;
     };
 
+    useEffect(() => {
+        console.log("[Player Debug] API_URL seen by Player:", API_URL);
+    }, []);
+
     if (!currentSong) return null;
     const prevTrack = queue.length > 0 ? queue[(currentIndex - 1 + queue.length) % queue.length] : null;
     const nextTrack = queue.length > 0 ? queue[(currentIndex + 1) % queue.length] : null;

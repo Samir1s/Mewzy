@@ -9,5 +9,8 @@ const API_URL = isLocal
     : "https://mewzy.onrender.com";
 
 console.error(`[CRITICAL CONFIG CHECK] Environment: ${isLocal ? 'Local' : 'Production'}, API_URL: ${API_URL}`);
+if (!isLocal && API_URL.includes("localhost")) {
+    console.error("!!! DANGER: Production build is using localhost API !!!");
+}
 
 export default API_URL;
