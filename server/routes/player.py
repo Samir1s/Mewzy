@@ -34,28 +34,53 @@ def proxy_image():
 def stream_track(video_id):
     try:
         # 1. Get Direct Stream URL
-        with YoutubeDL({'quiet': True, 'format': 'bestaudio/best'}) as ydl:
-            info = ydl.extract_info(video_id, download=False)
-            url = info['url']
+        ydl_opts = {
+            'quiet': True,
+            'format': 'bestaudio/best',
+            'nocheckcertificate': True,
+            # 'ios' client often avoids age-gates/throttling in data centers
+            'extractor_args': {'youtube': {'player_client': ['ios']}} 
+        }
+        with YoutubeDL(ydl_opts) as ydl:
+            try:
+                info = ydl.extract_info(video_id, download=False)
+                url = info['url']
+            except Exception as e:
+                # Fallback to standard client if ios fails
+                print(f"iOS client failed, retrying default: {e}")
+                ydl.params['extractor_args'] = {}
+                info = ydl.extract_info(video_id, download=False)
+                url = info['url']
         
-        # 2. Prepare headers (Forward Range for seeking)
-        headers = {}
+        # 2. Prepare headers
+        # Use a real browser User-Agent to avoid 403 Forbidden from Google Video servers
+        proxy_headers = {
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+            'Accept': '*/*'
+        }
+        
         range_header = request.headers.get('Range')
         if range_header:
-            headers['Range'] = range_header
-            
-        # 3. Stream from YouTube
+            proxy_headers['Range'] = range_header
+
+        # 3. Stream from YouTube (Forwarding headers)
         def generate():
-            with requests.get(url, headers=headers, stream=True) as r:
+            with requests.get(url, headers=proxy_headers, stream=True) as r:
+                # If upstream returns 403, we must fail gracefully
+                if r.status_code == 403:
+                    # In a generator we can't easily change the status code, 
+                    # but we can stop yielding. The client will just hear silence/error.
+                    return
                 for chunk in r.iter_content(chunk_size=4096):
                     if chunk: yield chunk
 
         # 4. Create Response
-        # We need to make a preliminary request to get correct Content-Length/Type for the response headers
-        # or just trust the proxy. For speed, we start the request inside generate but we need headers first.
-        # Better approach: Make the request, then stream the response object.
+        req = requests.get(url, headers=proxy_headers, stream=True)
         
-        req = requests.get(url, headers=headers, stream=True)
+        # If the video server blocks us, return 500 text
+        if req.status_code == 403:
+            return jsonify({'error': 'Upstream Forbidden (403)'}), 500
+            
         return Response(
             req.iter_content(chunk_size=4096),
             status=req.status_code,
