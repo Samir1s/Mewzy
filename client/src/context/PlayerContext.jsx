@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import API_URL from '../config';
-import API_URL from '../config';
+
 import { getImageUrl, fixUrl } from '../utils/urlUtils';
 
 const PlayerContext = createContext();
