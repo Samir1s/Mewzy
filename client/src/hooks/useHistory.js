@@ -1,15 +1,28 @@
 import { useState, useEffect } from 'react';
 import API_URL from '../config';
+import { fixUrl } from '../utils/urlUtils';
 import { usePlayer } from '../context/PlayerContext';
 
 export function useHistory() {
     const { playSong } = usePlayer();
+
+    // Helper to sanitize history items
+    const sanitizeItem = (item) => ({
+        ...item,
+        cover: fixUrl(item.cover),
+        stream_url: fixUrl(item.stream_url)
+    });
+
     const [recent, setRecent] = useState(() => {
         try {
             const cache = JSON.parse(localStorage.getItem('recent_history_cache_v1') || 'null');
-            if (cache && Array.isArray(cache.items) && cache.items.length > 0) return cache.items;
+            if (cache && Array.isArray(cache.items) && cache.items.length > 0) {
+                return cache.items.map(sanitizeItem);
+            }
             const local = JSON.parse(localStorage.getItem('local_recent_history_v1') || 'null');
-            if (local && Array.isArray(local)) return local;
+            if (local && Array.isArray(local)) {
+                return local.map(sanitizeItem);
+            }
         } catch (e) { }
         return [];
     });
@@ -73,9 +86,10 @@ export function useHistory() {
                     const data = await res.json();
                     const items = Array.isArray(data) ? data : (data.items || []);
                     if (mounted) {
-                        setRecent(items);
+                        const sanitized = items.map(sanitizeItem);
+                        setRecent(sanitized);
                         setLoading(false);
-                        localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), items }));
+                        localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), items: sanitized }));
                     }
                 } else if (recent.length === 0) {
                     setError(`History unavailable`);

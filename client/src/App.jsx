@@ -9,6 +9,7 @@ import HistoryView from './components/HistoryView';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Menu } from 'lucide-react';
 import API_URL from './config';
+import { fixUrl } from './utils/urlUtils';
 
 // --- AUTH MODAL COMPONENT ---
 const AuthModal = ({ onClose, onLogin }) => {
@@ -81,7 +82,7 @@ export default function App() {
     const [searchQuery, setSearchQuery] = useState("");
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [user, setUser] = useState(localStorage.getItem("username"));
-    const [profilePic, setProfilePic] = useState(localStorage.getItem("profile_pic"));
+    const [profilePic, setProfilePic] = useState(fixUrl(localStorage.getItem("profile_pic")));
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const handleLogin = (data) => {
