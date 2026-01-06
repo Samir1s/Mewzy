@@ -176,7 +176,7 @@ def stream_track(video_id):
                     'downloadMode': 'audio'
                 }
                 print(f"Strategy 4 (Cobalt POST): Requesting...")
-                cobalt_res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers=cobalt_headers, timeout=6)
+                cobalt_res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers=cobalt_headers, timeout=6, verify=False)
                 if cobalt_res.status_code == 200:
                     data = cobalt_res.json()
                     if 'url' in data:
@@ -189,7 +189,7 @@ def stream_track(video_id):
                      # Use a backup instance that supports GET or is less strict
                      # Public instances: https://cobalt.kwiatekmiki.pl, https://api.cobalt.tools
                      # Try backup instance
-                     cobalt_res = requests.post('https://cobalt.kwiatekmiki.pl/api/json', json=payload, headers=cobalt_headers, timeout=6)
+                     cobalt_res = requests.post('https://cobalt.kwiatekmiki.pl/api/json', json=payload, headers=cobalt_headers, timeout=6, verify=False)
                      if cobalt_res.status_code == 200:
                         data = cobalt_res.json()
                         if 'url' in data:
@@ -211,7 +211,7 @@ def stream_track(video_id):
             for host in invidious_instances:
                 try:
                     print(f"Strategy 5 (Invidious): Trying {host}...")
-                    inv_res = requests.get(f"{host}/api/v1/videos/{video_id}", headers=get_proxy_headers(), timeout=5)
+                    inv_res = requests.get(f"{host}/api/v1/videos/{video_id}", headers=get_proxy_headers(), timeout=5, verify=False)
                     if inv_res.status_code == 200:
                         data = inv_res.json()
                         if 'formatStreams' in data:
@@ -232,7 +232,7 @@ def stream_track(video_id):
             for host in piped_instances:
                 try:
                     print(f"Strategy 6 (Piped): Trying {host}...")
-                    piped_res = requests.get(f"{host}/streams/{video_id}", headers=get_proxy_headers(), timeout=5)
+                    piped_res = requests.get(f"{host}/streams/{video_id}", headers=get_proxy_headers(), timeout=5, verify=False)
                     
                     # Cloudflare check
                     if piped_res.status_code == 200:
@@ -267,7 +267,7 @@ def stream_track(video_id):
             proxy_headers['Range'] = range_header
 
         # 3. Create Response (Stream Proxy)
-        req = requests.get(url, headers=proxy_headers, stream=True, timeout=10)
+        req = requests.get(url, headers=proxy_headers, stream=True, timeout=10, verify=False)
         
         if req.status_code in [403, 410]:
              return jsonify({'error': f'Upstream Error ({req.status_code})'}), 500
