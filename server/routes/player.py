@@ -43,6 +43,15 @@ def stream_track(video_id):
     try:
         url = None
         
+        # Helper for common headers to bypass simple bot checks (Cloudflare)
+        def get_proxy_headers():
+            return {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Referer': 'https://www.google.com/'
+            }
+
         # Strategy 1: YoutubeDL (iOS Client)
         try:
             ydl_opts = {
@@ -72,31 +81,52 @@ def stream_track(video_id):
             except Exception as e:
                 print(f"Strategy 2 (Android) failed: {e}")
 
-        # Strategy 3: Cobalt API (High Reliability)
+        # Strategy 3: YoutubeDL (Web Client - Fallback)
         if not url:
             try:
-                # Cobalt's main API endpoint
+                ydl_opts = {
+                    'quiet': True,
+                    'format': 'bestaudio/best',
+                    'nocheckcertificate': True,
+                    'extractor_args': {'youtube': {'player_client': ['web']}}
+                }
+                with YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(video_id, download=False)
+                    url = info.get('url')
+            except Exception as e:
+                print(f"Strategy 3 (Web) failed: {e}")
+
+        # Strategy 4: Cobalt API (High Reliability)
+        if not url:
+            try:
                 cobalt_headers = {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 }
-                # Correct payload for audio
+                # Robust Cobalt V7 Payload
                 payload = {
                     'url': f'https://www.youtube.com/watch?v={video_id}',
-                    'downloadMode': 'audio'
+                    'vCodec': 'h264',
+                    'vQuality': '720',
+                    'aFormat': 'mp3',
+                    'filenamePattern': 'classic',
+                    'isAudioOnly': True
                 }
-                print(f"Strategy 3 (Cobalt): Requesting...")
+                print(f"Strategy 4 (Cobalt): Requesting...")
                 cobalt_res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers=cobalt_headers, timeout=6)
                 if cobalt_res.status_code == 200:
                     data = cobalt_res.json()
                     if 'url' in data:
                         url = data['url']
-                        print(f"Strategy 3 Success: Found URL via Cobalt")
+                        print(f"Strategy 4 Success: Found URL via Cobalt")
             except Exception as e:
-                print(f"Strategy 3 (Cobalt) failed: {e}")
+                print(f"Strategy 4 (Cobalt) failed: {e}")
 
-        # Strategy 4: Piped API (Multi-Instance Fallback - Updated Verified List)
+        # Strategy 5: Cobalt (Backup Instance - e.g. https://cobalt.kwiatekmiki.pl or others if main is strict?) 
+        # For now, sticking to Piped but with HEADERS
+
+        # Strategy 5: Piped API (Multi-Instance Fallback - Updated Verified List)
         if not url:
             piped_instances = [
                 "https://piped.video",            # Official
@@ -106,20 +136,21 @@ def stream_track(video_id):
             ]
             for host in piped_instances:
                 try:
-                    print(f"Strategy 4 (Piped): Trying {host}...")
-                    piped_res = requests.get(f"{host}/streams/{video_id}", timeout=4)
+                    print(f"Strategy 5 (Piped): Trying {host}...")
+                    # ADD HEADERS TO BYPASS CLOUDFLARE
+                    piped_res = requests.get(f"{host}/streams/{video_id}", headers=get_proxy_headers(), timeout=5)
                     if piped_res.status_code == 200:
                         data = piped_res.json()
                         audio_streams = [s for s in data.get('audioStreams', []) if s.get('mimeType') and ('audio/mpeg' in s['mimeType'] or 'mp4' in s['mimeType'])]
                         if audio_streams:
                             audio_streams.sort(key=lambda x: x.get('bitrate', 0), reverse=True)
                             url = audio_streams[0]['url']
-                            print(f"Strategy 4 Success: Found URL via {host}")
+                            print(f"Strategy 5 Success: Found URL via {host}")
                             break
                 except Exception as ex:
-                    print(f"Strategy 4 ({host}) failed: {ex}")
+                    print(f"Strategy 5 ({host}) failed: {ex}")
 
-        # Strategy 5: Invidious API (Final Fallback - Updated Verified List)
+        # Strategy 6: Invidious API (Final Fallback - Updated Verified List)
         if not url:
             invidious_instances = [
                 "https://inv.nadeko.net",
@@ -129,26 +160,23 @@ def stream_track(video_id):
             ]
             for host in invidious_instances:
                 try:
-                    print(f"Strategy 5 (Invidious): Trying {host}...")
-                    inv_res = requests.get(f"{host}/api/v1/videos/{video_id}", timeout=5)
+                    print(f"Strategy 6 (Invidious): Trying {host}...")
+                    # ADD HEADERS TO BYPASS CLOUDFLARE
+                    inv_res = requests.get(f"{host}/api/v1/videos/{video_id}", headers=get_proxy_headers(), timeout=5)
                     if inv_res.status_code == 200:
                         data = inv_res.json()
                         if 'formatStreams' in data:
-                            # Filter for audio/mpeg or mp4 audio
-                            audio_streams = [s for s in data['formatStreams'] if s.get('type') and ('audio/mpeg' in s['type'] or 'mp4' in s['type'])]
-                            # If no explicit audio streams (Invidious sometimes mixes), check adaptiveFormats
+                            audio_streams = [s for s in data['formatStreams'] if 'audio' in s.get('type', '')]
+                            
                             if not audio_streams and 'adaptiveFormats' in data:
-                                audio_streams = [s for s in data['adaptiveFormats'] if s.get('type') and ('audio/mpeg' in s['type'] or 'mp4' in s['type'])]
+                                audio_streams = [s for s in data['adaptiveFormats'] if 'audio' in s.get('type', '')]
                             
                             if audio_streams:
-                                # Sort by bitrate/quality
-                                # Invidious uses 'bitrate' (sometimes string) or 'qualityLabel'
-                                # Safer to just take the first one or try to parse bitrate
                                 url = audio_streams[0]['url']
-                                print(f"Strategy 5 Success: Found URL via {host}")
+                                print(f"Strategy 6 Success: Found URL via {host}")
                                 break
                 except Exception as ex:
-                    print(f"Strategy 5 ({host}) failed: {ex}")
+                    print(f"Strategy 6 ({host}) failed: {ex}")
 
         if not url:
             return jsonify({'error': 'All streaming strategies failed'}), 500
@@ -219,10 +247,6 @@ def get_lyrics(video_id):
         return jsonify({'error': 'Lyrics unavailable'}), 404
 @player_bp.route('/debug_stream/<video_id>')
 def debug_stream(video_id):
-    """
-    Runs the same logic as stream_track but returns a JSON log of what happened.
-    Useful for debugging 500 errors on Render.
-    """
     logs = []
     success_url = None
     
@@ -231,138 +255,76 @@ def debug_stream(video_id):
         print(f"[DebugStream] {msg}")
 
     try:
+        # Helper logs
+        def get_proxy_headers():
+            return {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Referer': 'https://www.google.com/'
+            }
+
         # Strategy 1: iOS
         try:
             log("Starting Strategy 1 (iOS)...")
-            ydl_opts = {
-                'quiet': True,
-                'format': 'bestaudio/best',
-                'nocheckcertificate': True,
-                'extractor_args': {'youtube': {'player_client': ['ios']}}
-            }
+            ydl_opts = { 'quiet': True, 'format': 'bestaudio/best', 'nocheckcertificate': True, 'extractor_args': {'youtube': {'player_client': ['ios']}} }
             with YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(video_id, download=False)
-                url = info.get('url')
-                if url:
-                    log(f"Strategy 1 Success: Got URL length {len(url)}")
-                    success_url = url
-                else:
-                    log("Strategy 1 Failed: URL is None/Empty")
-        except Exception as e:
-            log(f"Strategy 1 Error: {str(e)}")
+                if info.get('url'): success_url = info['url']; log("Strategy 1 Success")
+        except Exception as e: log(f"Strategy 1 Error: {e}")
 
         # Strategy 2: Android
         if not success_url:
             try:
                 log("Starting Strategy 2 (Android)...")
-                ydl_opts = {
-                    'quiet': True,
-                    'format': 'bestaudio/best',
-                    'nocheckcertificate': True,
-                    'extractor_args': {'youtube': {'player_client': ['android']}}
-                }
+                ydl_opts = { 'quiet': True, 'format': 'bestaudio/best', 'nocheckcertificate': True, 'extractor_args': {'youtube': {'player_client': ['android']}} }
                 with YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(video_id, download=False)
-                    url = info.get('url')
-                    if url:
-                        log(f"Strategy 2 Success: Got URL length {len(url)}")
-                        success_url = url
-                    else:
-                         log("Strategy 2 Failed: URL is None/Empty")
-            except Exception as e:
-                log(f"Strategy 2 Error: {str(e)}")
-
-        # Strategy 3: Cobalt
+                    if info.get('url'): success_url = info['url']; log("Strategy 2 Success")
+            except Exception as e: log(f"Strategy 2 Error: {e}")
+            
+        # Strategy 3: Web Client
         if not success_url:
             try:
-                log("Starting Strategy 3 (Cobalt)...")
-                cobalt_headers = {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                }
-                payload = {
-                    'url': f'https://www.youtube.com/watch?v={video_id}',
-                    'downloadMode': 'audio'
-                }
-                cobalt_res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers=cobalt_headers, timeout=6)
-                log(f"Cobalt Status: {cobalt_res.status_code}")
-                if cobalt_res.status_code == 200:
-                    data = cobalt_res.json()
-                    if 'url' in data:
-                        success_url = data['url']
-                        log(f"Strategy 3 Success: Got URL via Cobalt")
-                    else:
-                        log(f"Strategy 3 Failed: No 'url' in response: {data.keys()}")
-                else:
-                    log(f"Strategy 3 Failed: Status {cobalt_res.status_code}")
-            except Exception as e:
-                 log(f"Strategy 3 Error: {str(e)}")
+                log("Starting Strategy 3 (Web)...")
+                ydl_opts = { 'quiet': True, 'format': 'bestaudio/best', 'nocheckcertificate': True, 'extractor_args': {'youtube': {'player_client': ['web']}} }
+                with YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(video_id, download=False)
+                    if info.get('url'): success_url = info['url']; log("Strategy 3 Success")
+            except Exception as e: log(f"Strategy 3 Error: {e}")
 
-        # Strategy 4: Piped
+        # Strategy 4: Cobalt
         if not success_url:
-            piped_instances = [
-                "https://piped.video",
-                "https://piped.mha.fi",
-                "https://piped.smnz.de",
-                "https://piped.kavin.rocks"
-            ]
-            for host in piped_instances:
-                try:
-                    log(f"Starting Strategy 4 (Piped: {host})...")
-                    piped_res = requests.get(f"{host}/streams/{video_id}", timeout=4)
-                    log(f"Piped {host} Status: {piped_res.status_code}")
-                    if piped_res.status_code == 200:
-                        data = piped_res.json()
-                        audio_streams = [s for s in data.get('audioStreams', []) if s.get('mimeType') and ('audio/mpeg' in s['mimeType'] or 'mp4' in s['mimeType'])]
-                        if audio_streams:
-                           success_url = audio_streams[0]['url']
-                           log(f"Strategy 4 Success: Found URL via {host}")
-                           break
-                        else:
-                            log(f"Strategy 4 Failed: No audio streams found in {host}")
-                except Exception as ex:
-                    log(f"Strategy 4 Error ({host}): {str(ex)}")
+            try:
+                log("Starting Strategy 4 (Cobalt)...")
+                payload = { 'url': f'https://www.youtube.com/watch?v={video_id}', 'vCodec': 'h264', 'vQuality': '720', 'aFormat': 'mp3', 'filenamePattern': 'classic', 'isAudioOnly': True }
+                res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers={'Accept': 'application/json', 'Content-Type': 'application/json'}, timeout=6)
+                log(f"Cobalt Status: {res.status_code}")
+                if res.status_code == 200 and 'url' in res.json(): success_url = res.json()['url']; log("Strategy 4 Success")
+            except Exception as e: log(f"Strategy 4 Error: {e}")
 
-        # Strategy 5: Invidious
+        # Strategy 5: Piped
         if not success_url:
-            invidious_instances = [
-                "https://inv.nadeko.net",
-                "https://invidious.privacyredirect.com",
-                "https://yewtu.be",
-                "https://invidious.f5.si"
-            ]
-            for host in invidious_instances:
+            for host in ["https://piped.video", "https://piped.mha.fi", "https://piped.smnz.de", "https://piped.kavin.rocks"]:
                 try:
-                    log(f"Starting Strategy 5 (Invidious: {host})...")
-                    inv_res = requests.get(f"{host}/api/v1/videos/{video_id}", timeout=5)
-                    log(f"Invidious {host} Status: {inv_res.status_code}")
-                    if inv_res.status_code == 200:
-                         data = inv_res.json()
-                         if 'formatStreams' in data:
-                            audio_streams = [s for s in data['formatStreams'] if s.get('type') and ('audio/mpeg' in s['type'] or 'mp4' in s['type'])]
-                            if not audio_streams and 'adaptiveFormats' in data:
-                                audio_streams = [s for s in data['adaptiveFormats'] if s.get('type') and ('audio/mpeg' in s['type'] or 'mp4' in s['type'])]
-                            
-                            if audio_streams:
-                                success_url = audio_streams[0]['url']
-                                log(f"Strategy 5 Success: Found URL via {host}")
-                                break
-                         else:
-                             log(f"Strategy 5 Failed: No formatStreams in {host}")
-                except Exception as ex:
-                    log(f"Strategy 5 Error ({host}): {str(ex)}")
+                    log(f"Strategies 5 (Piped {host})...")
+                    res = requests.get(f"{host}/streams/{video_id}", headers=get_proxy_headers(), timeout=5)
+                    log(f"Piped {host} Status: {res.status_code}")
+                    if res.status_code == 200 and res.json().get('audioStreams'): success_url = res.json()['audioStreams'][0]['url']; log("Strategy 5 Success"); break
+                except Exception as e: log(f"Strategy 5 Error {host}: {e}")
 
-        return jsonify({
-            'video_id': video_id,
-            'success': success_url is not None,
-            'url_found': success_url,
-            'logs': logs
-        })
+        # Strategy 6: Invidious
+        if not success_url:
+            for host in ["https://inv.nadeko.net", "https://invidious.privacyredirect.com", "https://yewtu.be", "https://invidious.f5.si"]:
+                try:
+                    log(f"Strategy 6 (Invidious {host})...")
+                    res = requests.get(f"{host}/api/v1/videos/{video_id}", headers=get_proxy_headers(), timeout=5)
+                    log(f"Invidious {host} Status: {res.status_code}")
+                    if res.status_code == 200:
+                         d = res.json()
+                         if d.get('formatStreams') or d.get('adaptiveFormats'): success_url = "found_in_invidious"; log("Strategy 6 Success"); break
+                except Exception as e: log(f"Strategy 6 Error {host}: {e}")
 
-    except Exception as e:
-        return jsonify({
-            'error': 'Critical Debug Error',
-            'details': str(e),
-            'logs': logs
-        }), 500
+        return jsonify({'video_id': video_id, 'success': success_url is not None, 'logs': logs})
+
+    except Exception as e: return jsonify({'error': str(e), 'logs': logs}), 500
