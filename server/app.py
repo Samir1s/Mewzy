@@ -32,7 +32,7 @@ if frontend_url:
 
 print(f"DEBUG: Allowed Origins: {allowed_origins}") # Print to Render logs
 
-CORS(app, resources={r"/*": {"origins": allowed_origins}}, supports_credentials=True)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 db.init_app(app)
 jwt.init_app(app)
 limiter.init_app(app)
@@ -46,7 +46,8 @@ def add_security_headers(response):
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     # Content Security Policy (Basic)
     # Note: Connect-src needs to allow self and potentially other APIs if used
-    response.headers['Content-Security-Policy'] = "default-src 'self' http: https: data: blob: 'unsafe-inline'"
+    # Content-Security-Policy (Disabled for debugging global CORS issues)
+    # response.headers['Content-Security-Policy'] = "default-src 'self' http: https: data: blob: 'unsafe-inline'"
     return response
 
 # JWT Error Handlers
