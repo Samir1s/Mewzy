@@ -75,7 +75,6 @@ def get_healthy_piped_instances():
         "https://piped.r4fo.com",
         "https://piped.lunar.icu",
         "https://piped.privacy.com.de",
-        "https://piped.kavin.rocks",
         "https://piped.tokhmi.xyz", 
         "https://piped.adminforge.de",
         "https://piped.hostux.net",
@@ -125,14 +124,16 @@ def stream_track(video_id):
                 'Referer': 'https://www.google.com/'
             }
 
-        # Strategy 1 (formerly 4): Cobalt API (Multiple Instances)
+        # Strategy 1 (formerly 4): Cobalt API (Multiple Instances & Dual Payload)
         # Iterate through multiple Cobalt instances
         cobalt_instances = [
             "https://api.cobalt.tools/api/json",
             "https://cobalt.kwiatekmiki.pl/api/json",
             "https://cobalt.laccds.com/api/json",
-            "https://xp.nw.r.appspot.com/api/json", # Example backup found online
-            "https://api.cobalt.cool/api/json"
+            "https://xp.nw.r.appspot.com/api/json", 
+            "https://api.cobalt.cool/api/json",
+            "https://cobalt.tools/api/json",
+            "https://cobalt.synced.sh/api/json"
         ]
         
         cobalt_headers = {
@@ -140,27 +141,48 @@ def stream_track(video_id):
             'Content-Type': 'application/json',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
-        # Classic/Robust payload for Cobalt v7/v10 compatibility
-        payload = {
+        
+        # Payload A: Strict/New (v10/v7)
+        payload_a = {
             'url': f'https://www.youtube.com/watch?v={video_id}',
             'vCodec': 'h264',
             'vQuality': '720',
             'aFormat': 'mp3',
             'isAudioOnly': True
         }
+        # Payload B: Legacy/Simple
+        payload_b = {
+            'url': f'https://www.youtube.com/watch?v={video_id}',
+            'downloadMode': 'audio'
+        }
 
         for cob_host in cobalt_instances:
             try:
-                print(f"Strategy 1 (Cobalt {cob_host}): Requesting...")
-                cobalt_res = requests.post(cob_host, json=payload, headers=cobalt_headers, timeout=6, verify=False)
+                # Try Payload A
+                print(f"Strategy 1 (Cobalt {cob_host}): Requesting Payload A...")
+                cobalt_res = requests.post(cob_host, json=payload_a, headers=cobalt_headers, timeout=5, verify=False)
                 if cobalt_res.status_code == 200:
                     data = cobalt_res.json()
                     if 'url' in data:
                         url = data['url']
-                        print(f"Strategy 1 Success: Found URL via {cob_host}")
+                        print(f"Strategy 1 Success: Found URL via {cob_host} (Payload A)")
                         break
+                
+                # If Payload A fails (e.g. 400 Bad Request), Try Payload B
+                if cobalt_res.status_code == 400 or cobalt_res.status_code == 500:
+                     print(f"Strategy 1 (Cobalt {cob_host}): Requesting Payload B (Fallback)...")
+                     cobalt_res = requests.post(cob_host, json=payload_b, headers=cobalt_headers, timeout=5, verify=False)
+                     if cobalt_res.status_code == 200:
+                        data = cobalt_res.json()
+                        if 'url' in data:
+                            url = data['url']
+                            print(f"Strategy 1 Success: Found URL via {cob_host} (Payload B)")
+                            break
+                     else:
+                        errors.append(f"Strategy 1 ({cob_host}): Payload A/B failed ({cobalt_res.status_code})")
                 else:
-                     errors.append(f"Strategy 1 ({cob_host}) failed: Status {cobalt_res.status_code}")
+                     errors.append(f"Strategy 1 ({cob_host}): Status {cobalt_res.status_code}")
+
             except Exception as e:
                 print(f"Strategy 1 ({cob_host}) failed: {e}")
                 errors.append(f"Strategy 1 ({cob_host}) Exception: {str(e)}")
@@ -398,26 +420,43 @@ def debug_stream(video_id):
                 "https://cobalt.kwiatekmiki.pl/api/json",
                 "https://cobalt.laccds.com/api/json",
                 "https://xp.nw.r.appspot.com/api/json",
-                "https://api.cobalt.cool/api/json"
+                "https://api.cobalt.cool/api/json",
+                "https://cobalt.tools/api/json",
+                "https://cobalt.synced.sh/api/json"
             ]
-            # Classic/Robust payload for Cobalt v7/v10 compatibility
-            payload = {
+            
+            # Payload A: Strict/New (v10/v7)
+            payload_a = {
                 'url': f'https://www.youtube.com/watch?v={video_id}',
                 'vCodec': 'h264',
                 'vQuality': '720',
                 'aFormat': 'mp3',
                 'isAudioOnly': True
             }
-            
+            # Payload B: Legacy/Simple
+            payload_b = {
+                'url': f'https://www.youtube.com/watch?v={video_id}',
+                'downloadMode': 'audio'
+            }
+
             for cob_host in cobalt_instances:
                 try:
                     log(f"Starting Strategy 1 (Cobalt {cob_host})...")
-                    res = requests.post(cob_host, json=payload, headers={'Accept': 'application/json', 'Content-Type': 'application/json'}, timeout=6, verify=False)
-                    log(f"Cobalt {cob_host} Status: {res.status_code}")
+                    res = requests.post(cob_host, json=payload_a, headers={'Accept': 'application/json', 'Content-Type': 'application/json'}, timeout=5, verify=False)
+                    log(f"Cobalt {cob_host} (Payload A) Status: {res.status_code}")
                     if res.status_code == 200 and 'url' in res.json(): 
                         success_url = res.json()['url']
-                        log(f"Strategy 1 Success: {cob_host}")
+                        log(f"Strategy 1 Success: {cob_host} (Payload A)")
                         break
+                    
+                    if res.status_code == 400 or res.status_code == 500:
+                        log(f"Cobalt {cob_host} (Payload B Fallback)...")
+                        res = requests.post(cob_host, json=payload_b, headers={'Accept': 'application/json', 'Content-Type': 'application/json'}, timeout=5, verify=False)
+                        log(f"Cobalt {cob_host} (Payload B) Status: {res.status_code}")
+                        if res.status_code == 200 and 'url' in res.json():
+                            success_url = res.json()['url']
+                            log(f"Strategy 1 Success: {cob_host} (Payload B)")
+                            break
                 except Exception as e: log(f"Strategy 1 Error {cob_host}: {e}")
 
         # Strategy 2 (formerly 6): Piped (Dynamic)
