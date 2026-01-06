@@ -38,17 +38,49 @@ def proxy_image():
         print(f"Proxy Error: {e}")
         return jsonify({'error': 'Failed to fetch image'}), 500
 
+# Cache for Piped instances
+piped_instances_cache = []
+last_piped_fetch = 0
+
+def get_healthy_piped_instances():
+    global piped_instances_cache, last_piped_fetch
+    import time
+    if piped_instances_cache and (time.time() - last_piped_fetch < 3600): # Cache for 1 hour
+        return piped_instances_cache
+
+    try:
+        print("[Player] Fetching fresh Piped instances...")
+        res = requests.get("https://piped-instances.kavin.rocks/", timeout=5)
+        if res.status_code == 200:
+            instances = res.json()
+            # Filter: up-to-date, healthy, and has https
+            healthy = [
+                i['api_url'] for i in instances 
+                if i.get('api_url') and i.get('uptime_24h', 0) > 90 and 'https' in i['api_url']
+            ]
+            # Prioritize official/known fast ones if in the list
+            priority = ["https://piped.video", "https://piped.mha.fi"]
+            sorted_instances = [h for h in healthy if h in priority] + [h for h in healthy if h not in priority]
+            
+            piped_instances_cache = sorted_instances[:8] # Keep top 8
+            last_piped_fetch = time.time()
+            return piped_instances_cache
+    except Exception as e:
+        print(f"[Player] Failed to fetch Piped instances: {e}")
+    
+    # Fallback if fetch fails
+    return ["https://piped.video", "https://piped.mha.fi", "https://piped.smnz.de", "https://piped.kavin.rocks"]
+
 @player_bp.route('/stream/<video_id>')
 def stream_track(video_id):
     try:
-        # Sanitize video_id (remove markdown stars or accidental chars)
+        # Sanitize video_id
         video_id = video_id.replace('*', '').strip()
-        
         url = None
         
-        # Helper for common headers to bypass simple bot checks (Cloudflare)
+        # Helper logs
         def get_proxy_headers():
-            return {
+             return {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.5',
@@ -149,19 +181,20 @@ def stream_track(video_id):
                 except Exception as ex:
                     print(f"Strategy 5 ({host}) failed: {ex}")
 
-        # Strategy 6: Piped API
+        # Strategy 6: Piped API (Dynamic & Healthy)
         if not url:
-            piped_instances = [
-                "https://piped.video",            # Official
-                "https://piped.mha.fi",           # Reliable
-                "https://piped.smnz.de",          # Reliable
-                "https://piped.kavin.rocks"       # Fallback
-            ]
+            piped_instances = get_healthy_piped_instances()
             for host in piped_instances:
                 try:
                     print(f"Strategy 6 (Piped): Trying {host}...")
                     piped_res = requests.get(f"{host}/streams/{video_id}", headers=get_proxy_headers(), timeout=5)
+                    
+                    # Cloudflare check
                     if piped_res.status_code == 200:
+                        if piped_res.text.strip().startswith('<'): # HTML detected
+                            print(f"Strategy 6 ({host}) blocked by Cloudflare (HTML response).")
+                            continue
+
                         data = piped_res.json()
                         audio_streams = [s for s in data.get('audioStreams', []) if s.get('mimeType') and ('audio/mpeg' in s['mimeType'] or 'mp4' in s['mimeType'])]
                         if audio_streams:
@@ -169,6 +202,8 @@ def stream_track(video_id):
                             url = audio_streams[0]['url']
                             print(f"Strategy 6 Success: Found URL via {host}")
                             break
+                    elif piped_res.status_code in [403, 503, 429]:
+                        print(f"Strategy 6 ({host}) blocked: {piped_res.status_code}")
                 except Exception as ex:
                     print(f"Strategy 6 ({host}) failed: {ex}")
 
@@ -313,14 +348,23 @@ def debug_stream(video_id):
                          if d.get('formatStreams') or d.get('adaptiveFormats'): success_url = "found_in_invidious"; log("Strategy 5 Success"); break
                 except Exception as e: log(f"Strategy 5 Error {host}: {e}")
 
-        # Strategy 6: Piped
+        # Strategy 6: Piped (Dynamic)
         if not success_url:
-            for host in ["https://piped.video", "https://piped.mha.fi", "https://piped.smnz.de", "https://piped.kavin.rocks"]:
+            piped_instances = get_healthy_piped_instances()
+            for host in piped_instances:
                 try:
                     log(f"Strategies 6 (Piped {host})...")
                     res = requests.get(f"{host}/streams/{video_id}", headers=get_proxy_headers(), timeout=5)
                     log(f"Piped {host} Status: {res.status_code}")
-                    if res.status_code == 200 and res.json().get('audioStreams'): success_url = res.json()['audioStreams'][0]['url']; log("Strategy 6 Success"); break
+                    
+                    if res.status_code == 200:
+                        if res.text.strip().startswith('<'):
+                             log(f"Strategy 6 Failed: Cloudflare HTML detected")
+                             continue
+                        if res.json().get('audioStreams'): 
+                            success_url = res.json()['audioStreams'][0]['url']
+                            log("Strategy 6 Success")
+                            break
                 except Exception as e: log(f"Strategy 6 Error {host}: {e}")
 
         return jsonify({'video_id': video_id, 'success': success_url is not None, 'logs': logs})
