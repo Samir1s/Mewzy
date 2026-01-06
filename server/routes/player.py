@@ -131,6 +131,21 @@ def stream_track(video_id):
             except Exception as e:
                 print(f"Strategy 3 (Web) failed: {e}")
 
+        # Strategy 3.5: YoutubeDL (TV Client - Last Resort)
+        if not url:
+            try:
+                ydl_opts = {
+                    'quiet': True,
+                    'format': 'bestaudio/best',
+                    'nocheckcertificate': True,
+                    'extractor_args': {'youtube': {'player_client': ['tv']}}
+                }
+                with YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(video_id, download=False)
+                    url = info.get('url')
+            except Exception as e:
+                print(f"Strategy 3.5 (TV) failed: {e}")
+
         # Strategy 4: Cobalt API (High Reliability - Simplified Payload)
         if not url:
             try:
@@ -144,13 +159,27 @@ def stream_track(video_id):
                     'url': f'https://www.youtube.com/watch?v={video_id}',
                     'downloadMode': 'audio'
                 }
-                print(f"Strategy 4 (Cobalt): Requesting...")
+                print(f"Strategy 4 (Cobalt POST): Requesting...")
                 cobalt_res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers=cobalt_headers, timeout=6)
                 if cobalt_res.status_code == 200:
                     data = cobalt_res.json()
                     if 'url' in data:
                         url = data['url']
-                        print(f"Strategy 4 Success: Found URL via Cobalt")
+                        print(f"Strategy 4 Success: Found URL via Cobalt POST")
+                
+                # Fallback to GET on a known backup instance if main fails
+                if not url:
+                     print(f"Strategy 4 (Cobalt GET): Requesting backup...")
+                     # Use a backup instance that supports GET or is less strict
+                     # Public instances: https://cobalt.kwiatekmiki.pl, https://api.cobalt.tools
+                     # Try backup instance
+                     cobalt_res = requests.post('https://cobalt.kwiatekmiki.pl/api/json', json=payload, headers=cobalt_headers, timeout=6)
+                     if cobalt_res.status_code == 200:
+                        data = cobalt_res.json()
+                        if 'url' in data:
+                            url = data['url']
+                            print(f"Strategy 4 Success: Found URL via Cobalt Backup")
+
             except Exception as e:
                 print(f"Strategy 4 (Cobalt) failed: {e}")
 
@@ -325,6 +354,16 @@ def debug_stream(video_id):
                     if info.get('url'): success_url = info['url']; log("Strategy 3 Success")
             except Exception as e: log(f"Strategy 3 Error: {e}")
 
+        # Strategy 3.5: TV Client
+        if not success_url:
+            try:
+                log("Starting Strategy 3.5 (TV)...")
+                ydl_opts = { 'quiet': True, 'format': 'bestaudio/best', 'nocheckcertificate': True, 'extractor_args': {'youtube': {'player_client': ['tv']}} }
+                with YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(video_id, download=False)
+                    if info.get('url'): success_url = info['url']; log("Strategy 3.5 Success")
+            except Exception as e: log(f"Strategy 3.5 Error: {e}")
+
         # Strategy 4: Cobalt
         if not success_url:
             try:
@@ -334,6 +373,11 @@ def debug_stream(video_id):
                 res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers={'Accept': 'application/json', 'Content-Type': 'application/json'}, timeout=6)
                 log(f"Cobalt Status: {res.status_code}")
                 if res.status_code == 200 and 'url' in res.json(): success_url = res.json()['url']; log("Strategy 4 Success")
+                else:
+                    # Backup
+                    log("Cobalt Backup...")
+                    res = requests.post('https://cobalt.kwiatekmiki.pl/api/json', json=payload, headers={'Accept': 'application/json', 'Content-Type': 'application/json'}, timeout=6)
+                    if res.status_code == 200 and 'url' in res.json(): success_url = res.json()['url']; log("Strategy 4 Backup Success")
             except Exception as e: log(f"Strategy 4 Error: {e}")
 
         # Strategy 5: Invidious (Promoted)
