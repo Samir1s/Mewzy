@@ -297,7 +297,9 @@ def stream_track(video_id):
                 errors.append(f"Strategy 7 (TV) Exception: {str(e)}")
 
         if not url:
-            return jsonify({'error': 'All streaming strategies failed', 'details': errors}), 500
+            response = jsonify({'error': 'All streaming strategies failed', 'details': errors})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 500
         
         # 2. Prepare headers with browser impersonation
         proxy_headers = {
@@ -314,7 +316,9 @@ def stream_track(video_id):
         req = requests.get(url, headers=proxy_headers, stream=True, timeout=10, verify=False)
         
         if req.status_code in [403, 410]:
-             return jsonify({'error': f'Upstream Error ({req.status_code})', 'url': url}), 500
+             response = jsonify({'error': f'Upstream Error ({req.status_code})', 'url': url})
+             response.headers.add('Access-Control-Allow-Origin', '*')
+             return response, 500
             
         return Response(
             req.iter_content(chunk_size=4096),
@@ -330,7 +334,9 @@ def stream_track(video_id):
 
     except Exception as e:
         print(f"Stream Error: {e}")
-        return jsonify({'error': str(e), 'details': errors}), 500
+        response = jsonify({'error': str(e), 'details': errors})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 @player_bp.route('/lyrics/<video_id>', methods=['GET'])
 def get_lyrics(video_id):
