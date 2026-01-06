@@ -65,20 +65,15 @@ def get_healthy_piped_instances():
         return piped_instances_cache
 
     # Hardcoded robust list found online (Piped instances)
-    # These are used if the dynamic fetch fails or returns no healthy results
+    # Filtered out dead/DNS-failing instances from previous debug logs
     fallback_instances = [
         "https://piped.video",
         "https://piped.mha.fi", 
         "https://piped.smnz.de",
         "https://piped.kavin.rocks",
-        "https://piped.adminforge.de",
         "https://piped.projectsegfau.lt",
         "https://piped.r4fo.com",
-        "https://piped.hostux.net",
-        "https://piped.chamuditha.com",
-        "https://piped.privacy.com.de",
-        "https://piped.lunar.icu",
-        "https://piped.tokhmi.xyz"
+        "https://piped.lunar.icu"
     ]
 
     try:
@@ -131,10 +126,13 @@ def stream_track(video_id):
                 'Content-Type': 'application/json',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             }
-            # Minimal payload to avoid validation errors (400)
+            # Classic/Robust payload for Cobalt v7/v10 compatibility
             payload = {
                 'url': f'https://www.youtube.com/watch?v={video_id}',
-                'downloadMode': 'audio'
+                'vCodec': 'h264',
+                'vQuality': '720',
+                'aFormat': 'mp3',
+                'isAudioOnly': True
             }
             print(f"Strategy 1 (Cobalt POST): Requesting...")
             cobalt_res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers=cobalt_headers, timeout=6, verify=False)
@@ -386,8 +384,14 @@ def debug_stream(video_id):
         if not success_url:
             try:
                 log("Starting Strategy 1 (Cobalt)...")
-                # Minimal payload from strategy
-                payload = { 'url': f'https://www.youtube.com/watch?v={video_id}', 'downloadMode': 'audio' }
+                # Classic/Robust payload for Cobalt v7/v10 compatibility
+                payload = {
+                    'url': f'https://www.youtube.com/watch?v={video_id}',
+                    'vCodec': 'h264',
+                    'vQuality': '720',
+                    'aFormat': 'mp3',
+                    'isAudioOnly': True
+                }
                 res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers={'Accept': 'application/json', 'Content-Type': 'application/json'}, timeout=6, verify=False)
                 log(f"Cobalt Status: {res.status_code}")
                 if res.status_code == 200 and 'url' in res.json(): success_url = res.json()['url']; log("Strategy 1 Success")
@@ -419,7 +423,7 @@ def debug_stream(video_id):
 
         # Strategy 3 (formerly 5): Invidious (Promoted)
         if not success_url:
-            for host in ["https://inv.nadeko.net", "https://invidious.privacyredirect.com", "https://yewtu.be", "https://invidious.f5.si"]:
+            for host in ["https://inv.nadeko.net", "https://invidious.privacyredirect.com", "https://yewtu.be", "https://invidious.f5.si", "https://vid.puffyan.us", "https://invidious.drgns.space"]:
                 try:
                     log(f"Strategy 3 (Invidious {host})...")
                     res = requests.get(f"{host}/api/v1/videos/{video_id}", headers=get_proxy_headers(), timeout=5, verify=False)
