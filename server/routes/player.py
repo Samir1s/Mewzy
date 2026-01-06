@@ -64,9 +64,26 @@ def get_healthy_piped_instances():
     if piped_instances_cache and (time.time() - last_piped_fetch < 3600): # Cache for 1 hour
         return piped_instances_cache
 
+    # Hardcoded robust list found online (Piped instances)
+    # These are used if the dynamic fetch fails or returns no healthy results
+    fallback_instances = [
+        "https://piped.video",
+        "https://piped.mha.fi", 
+        "https://piped.smnz.de",
+        "https://piped.kavin.rocks",
+        "https://piped.adminforge.de",
+        "https://piped.projectsegfau.lt",
+        "https://piped.r4fo.com",
+        "https://piped.hostux.net",
+        "https://piped.chamuditha.com",
+        "https://piped.privacy.com.de",
+        "https://piped.lunar.icu",
+        "https://piped.tokhmi.xyz"
+    ]
+
     try:
         print("[Player] Fetching fresh Piped instances...")
-        res = requests.get("https://piped-instances.kavin.rocks/", timeout=5)
+        res = requests.get("https://piped-instances.kavin.rocks/", timeout=5, verify=False)
         if res.status_code == 200:
             instances = res.json()
             # Filter: up-to-date, healthy, and has https
@@ -78,17 +95,21 @@ def get_healthy_piped_instances():
             priority = ["https://piped.video", "https://piped.mha.fi"]
             sorted_instances = [h for h in healthy if h in priority] + [h for h in healthy if h not in priority]
             
-            piped_instances_cache = sorted_instances[:8] # Keep top 8
+            # Combine with fallback to ensure we have a good list
+            final_list = sorted_instances + [f for f in fallback_instances if f not in sorted_instances]
+            
+            piped_instances_cache = final_list[:15] # Keep top 15
             last_piped_fetch = time.time()
             return piped_instances_cache
     except Exception as e:
         print(f"[Player] Failed to fetch Piped instances: {e}")
     
     # Fallback if fetch fails
-    return ["https://piped.video", "https://piped.mha.fi", "https://piped.smnz.de", "https://piped.kavin.rocks"]
+    return fallback_instances
 
 @player_bp.route('/stream/<video_id>')
 def stream_track(video_id):
+    errors = []
     try:
         # Sanitize video_id
         video_id = video_id.replace('*', '').strip()
@@ -122,22 +143,24 @@ def stream_track(video_id):
                 if 'url' in data:
                     url = data['url']
                     print(f"Strategy 1 Success: Found URL via Cobalt POST")
+            else:
+                errors.append(f"Strategy 1 (Cobalt Main) failed: Status {cobalt_res.status_code}")
             
             # Fallback to GET on a known backup instance if main fails
             if not url:
                  print(f"Strategy 1 (Cobalt Backup): Requesting backup...")
-                 # Use a backup instance that supports GET or is less strict
-                 # Public instances: https://cobalt.kwiatekmiki.pl, https://api.cobalt.tools
-                 # Try backup instance
                  cobalt_res = requests.post('https://cobalt.kwiatekmiki.pl/api/json', json=payload, headers=cobalt_headers, timeout=6, verify=False)
                  if cobalt_res.status_code == 200:
                     data = cobalt_res.json()
                     if 'url' in data:
                         url = data['url']
                         print(f"Strategy 1 Success: Found URL via Cobalt Backup")
+                 else:
+                    errors.append(f"Strategy 1 (Cobalt Backup) failed: Status {cobalt_res.status_code}")
 
         except Exception as e:
             print(f"Strategy 1 (Cobalt) failed: {e}")
+            errors.append(f"Strategy 1 (Cobalt) Exception: {str(e)}")
 
         # Strategy 2 (formerly 6): Piped API (Dynamic & Healthy)
         if not url:
@@ -151,6 +174,7 @@ def stream_track(video_id):
                     if piped_res.status_code == 200:
                         if piped_res.text.strip().startswith('<'): # HTML detected
                             print(f"Strategy 2 ({host}) blocked by Cloudflare (HTML response).")
+                            errors.append(f"Strategy 2 ({host}) blocked: Cloudflare HTML")
                             continue
 
                         data = piped_res.json()
@@ -160,10 +184,16 @@ def stream_track(video_id):
                             url = audio_streams[0]['url']
                             print(f"Strategy 2 Success: Found URL via {host}")
                             break
+                        else:
+                             errors.append(f"Strategy 2 ({host}) failed: No audio streams found")
                     elif piped_res.status_code in [403, 503, 429]:
                         print(f"Strategy 2 ({host}) blocked: {piped_res.status_code}")
+                        errors.append(f"Strategy 2 ({host}) blocked: Status {piped_res.status_code}")
+                    else:
+                        errors.append(f"Strategy 2 ({host}) failed: Status {piped_res.status_code}")
                 except Exception as ex:
                     print(f"Strategy 2 ({host}) failed: {ex}")
+                    errors.append(f"Strategy 2 ({host}) Exception: {str(ex)}")
 
         # Strategy 3 (formerly 5): Invidious API (Promoted - higher success chance than Piped usually)
         if not url:
@@ -172,7 +202,9 @@ def stream_track(video_id):
                 "https://inv.nadeko.net",
                 "https://invidious.privacyredirect.com",
                 "https://yewtu.be",
-                "https://invidious.f5.si"
+                "https://invidious.f5.si",
+                "https://vid.puffyan.us",
+                "https://invidious.drgns.space"
             ]
             for host in invidious_instances:
                 try:
@@ -189,8 +221,13 @@ def stream_track(video_id):
                                 url = audio_streams[0]['url']
                                 print(f"Strategy 3 Success: Found URL via {host}")
                                 break
+                        else:
+                            errors.append(f"Strategy 3 ({host}) failed: No streams found")
+                    else:
+                        errors.append(f"Strategy 3 ({host}) failed: Status {inv_res.status_code}")
                 except Exception as ex:
                     print(f"Strategy 3 ({host}) failed: {ex}")
+                    errors.append(f"Strategy 3 ({host}) Exception: {str(ex)}")
 
         # Strategy 4: YoutubeDL (iOS Client)
         if not url:
@@ -206,6 +243,7 @@ def stream_track(video_id):
                     url = info.get('url')
             except Exception as e:
                 print(f"Strategy 4 (iOS) failed: {e}")
+                errors.append(f"Strategy 4 (iOS) Exception: {str(e)}")
 
         # Strategy 5: YoutubeDL (Android Client)
         if not url:
@@ -221,6 +259,7 @@ def stream_track(video_id):
                     url = info.get('url')
             except Exception as e:
                 print(f"Strategy 5 (Android) failed: {e}")
+                errors.append(f"Strategy 5 (Android) Exception: {str(e)}")
 
         # Strategy 6: YoutubeDL (Web Client - Fallback)
         if not url:
@@ -236,6 +275,7 @@ def stream_track(video_id):
                     url = info.get('url')
             except Exception as e:
                 print(f"Strategy 6 (Web) failed: {e}")
+                errors.append(f"Strategy 6 (Web) Exception: {str(e)}")
 
         # Strategy 7: YoutubeDL (TV Client - Last Resort)
         if not url:
@@ -251,9 +291,10 @@ def stream_track(video_id):
                     url = info.get('url')
             except Exception as e:
                 print(f"Strategy 7 (TV) failed: {e}")
+                errors.append(f"Strategy 7 (TV) Exception: {str(e)}")
 
         if not url:
-            return jsonify({'error': 'All streaming strategies failed'}), 500
+            return jsonify({'error': 'All streaming strategies failed', 'details': errors}), 500
         
         # 2. Prepare headers with browser impersonation
         proxy_headers = {
@@ -270,7 +311,7 @@ def stream_track(video_id):
         req = requests.get(url, headers=proxy_headers, stream=True, timeout=10, verify=False)
         
         if req.status_code in [403, 410]:
-             return jsonify({'error': f'Upstream Error ({req.status_code})'}), 500
+             return jsonify({'error': f'Upstream Error ({req.status_code})', 'url': url}), 500
             
         return Response(
             req.iter_content(chunk_size=4096),
@@ -286,7 +327,7 @@ def stream_track(video_id):
 
     except Exception as e:
         print(f"Stream Error: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e), 'details': errors}), 500
 
 @player_bp.route('/lyrics/<video_id>', methods=['GET'])
 def get_lyrics(video_id):
