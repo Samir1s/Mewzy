@@ -18,24 +18,40 @@ def version():
         'status': 'active'
     })
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 @player_bp.route('/proxy_image')
 def proxy_image():
     url = request.args.get('url')
     if not url: return jsonify({'error': 'No URL provided'}), 400
     try:
-        req_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-        resp = requests.get(url, headers=req_headers, stream=True, timeout=5)
+        # Use a standard browser User-Agent
+        req_headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
         
+        # Verify=False to bypass SSL issues on Render/cloud environments
+        # stream=True ensures we don't load massive files into memory at once
+        resp = requests.get(url, headers=req_headers, stream=True, timeout=10, verify=False)
+        
+        # If upstream failed, pass that status code along (don't error out 500)
+        if resp.status_code != 200:
+             return jsonify({'error': f'Upstream error {resp.status_code}'}), resp.status_code
+
         excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
         headers = [(name, value) for (name, value) in resp.raw.headers.items()
                    if name.lower() not in excluded_headers]
+        
         response = make_response(resp.content)
         for name, value in headers:
             response.headers[name] = value
+            
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
+        
     except Exception as e:
-        print(f"Proxy Error: {e}")
+        print(f"Proxy Error for {url}: {e}")
         return jsonify({'error': 'Failed to fetch image'}), 500
 
 # Cache for Piped instances
