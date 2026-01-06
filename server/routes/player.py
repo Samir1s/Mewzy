@@ -41,6 +41,9 @@ def proxy_image():
 @player_bp.route('/stream/<video_id>')
 def stream_track(video_id):
     try:
+        # Sanitize video_id (remove markdown stars or accidental chars)
+        video_id = video_id.replace('*', '').strip()
+        
         url = None
         
         # Helper for common headers to bypass simple bot checks (Cloudflare)
@@ -247,6 +250,9 @@ def get_lyrics(video_id):
         return jsonify({'error': 'Lyrics unavailable'}), 404
 @player_bp.route('/debug_stream/<video_id>')
 def debug_stream(video_id):
+    # Sanitize video_id
+    video_id = video_id.replace('*', '').strip()
+    
     logs = []
     success_url = None
     
