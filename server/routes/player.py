@@ -99,7 +99,7 @@ def stream_track(video_id):
             except Exception as e:
                 print(f"Strategy 3 (Web) failed: {e}")
 
-        # Strategy 4: Cobalt API (High Reliability)
+        # Strategy 4: Cobalt API (High Reliability - Simplified Payload)
         if not url:
             try:
                 cobalt_headers = {
@@ -107,14 +107,10 @@ def stream_track(video_id):
                     'Content-Type': 'application/json',
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 }
-                # Robust Cobalt V7 Payload
+                # Minimal payload to avoid validation errors (400)
                 payload = {
                     'url': f'https://www.youtube.com/watch?v={video_id}',
-                    'vCodec': 'h264',
-                    'vQuality': '720',
-                    'aFormat': 'mp3',
-                    'filenamePattern': 'classic',
-                    'isAudioOnly': True
+                    'downloadMode': 'audio'
                 }
                 print(f"Strategy 4 (Cobalt): Requesting...")
                 cobalt_res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers=cobalt_headers, timeout=6)
@@ -126,10 +122,34 @@ def stream_track(video_id):
             except Exception as e:
                 print(f"Strategy 4 (Cobalt) failed: {e}")
 
-        # Strategy 5: Cobalt (Backup Instance - e.g. https://cobalt.kwiatekmiki.pl or others if main is strict?) 
-        # For now, sticking to Piped but with HEADERS
+        # Strategy 5: Invidious API (Promoted to 5th - higher success chance than Piped usually)
+        if not url:
+             # Try Invidious first, sometimes more reliable for raw streams
+            invidious_instances = [
+                "https://inv.nadeko.net",
+                "https://invidious.privacyredirect.com",
+                "https://yewtu.be",
+                "https://invidious.f5.si"
+            ]
+            for host in invidious_instances:
+                try:
+                    print(f"Strategy 5 (Invidious): Trying {host}...")
+                    inv_res = requests.get(f"{host}/api/v1/videos/{video_id}", headers=get_proxy_headers(), timeout=5)
+                    if inv_res.status_code == 200:
+                        data = inv_res.json()
+                        if 'formatStreams' in data:
+                            audio_streams = [s for s in data['formatStreams'] if 'audio' in s.get('type', '')]
+                            if not audio_streams and 'adaptiveFormats' in data:
+                                audio_streams = [s for s in data['adaptiveFormats'] if 'audio' in s.get('type', '')]
+                            
+                            if audio_streams:
+                                url = audio_streams[0]['url']
+                                print(f"Strategy 5 Success: Found URL via {host}")
+                                break
+                except Exception as ex:
+                    print(f"Strategy 5 ({host}) failed: {ex}")
 
-        # Strategy 5: Piped API (Multi-Instance Fallback - Updated Verified List)
+        # Strategy 6: Piped API
         if not url:
             piped_instances = [
                 "https://piped.video",            # Official
@@ -139,8 +159,7 @@ def stream_track(video_id):
             ]
             for host in piped_instances:
                 try:
-                    print(f"Strategy 5 (Piped): Trying {host}...")
-                    # ADD HEADERS TO BYPASS CLOUDFLARE
+                    print(f"Strategy 6 (Piped): Trying {host}...")
                     piped_res = requests.get(f"{host}/streams/{video_id}", headers=get_proxy_headers(), timeout=5)
                     if piped_res.status_code == 200:
                         data = piped_res.json()
@@ -148,36 +167,8 @@ def stream_track(video_id):
                         if audio_streams:
                             audio_streams.sort(key=lambda x: x.get('bitrate', 0), reverse=True)
                             url = audio_streams[0]['url']
-                            print(f"Strategy 5 Success: Found URL via {host}")
+                            print(f"Strategy 6 Success: Found URL via {host}")
                             break
-                except Exception as ex:
-                    print(f"Strategy 5 ({host}) failed: {ex}")
-
-        # Strategy 6: Invidious API (Final Fallback - Updated Verified List)
-        if not url:
-            invidious_instances = [
-                "https://inv.nadeko.net",
-                "https://invidious.privacyredirect.com",
-                "https://yewtu.be",
-                "https://invidious.f5.si"
-            ]
-            for host in invidious_instances:
-                try:
-                    print(f"Strategy 6 (Invidious): Trying {host}...")
-                    # ADD HEADERS TO BYPASS CLOUDFLARE
-                    inv_res = requests.get(f"{host}/api/v1/videos/{video_id}", headers=get_proxy_headers(), timeout=5)
-                    if inv_res.status_code == 200:
-                        data = inv_res.json()
-                        if 'formatStreams' in data:
-                            audio_streams = [s for s in data['formatStreams'] if 'audio' in s.get('type', '')]
-                            
-                            if not audio_streams and 'adaptiveFormats' in data:
-                                audio_streams = [s for s in data['adaptiveFormats'] if 'audio' in s.get('type', '')]
-                            
-                            if audio_streams:
-                                url = audio_streams[0]['url']
-                                print(f"Strategy 6 Success: Found URL via {host}")
-                                break
                 except Exception as ex:
                     print(f"Strategy 6 ({host}) failed: {ex}")
 
@@ -303,32 +294,33 @@ def debug_stream(video_id):
         if not success_url:
             try:
                 log("Starting Strategy 4 (Cobalt)...")
-                payload = { 'url': f'https://www.youtube.com/watch?v={video_id}', 'vCodec': 'h264', 'vQuality': '720', 'aFormat': 'mp3', 'filenamePattern': 'classic', 'isAudioOnly': True }
+                # Minimal payload from strategy
+                payload = { 'url': f'https://www.youtube.com/watch?v={video_id}', 'downloadMode': 'audio' }
                 res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers={'Accept': 'application/json', 'Content-Type': 'application/json'}, timeout=6)
                 log(f"Cobalt Status: {res.status_code}")
                 if res.status_code == 200 and 'url' in res.json(): success_url = res.json()['url']; log("Strategy 4 Success")
             except Exception as e: log(f"Strategy 4 Error: {e}")
 
-        # Strategy 5: Piped
-        if not success_url:
-            for host in ["https://piped.video", "https://piped.mha.fi", "https://piped.smnz.de", "https://piped.kavin.rocks"]:
-                try:
-                    log(f"Strategies 5 (Piped {host})...")
-                    res = requests.get(f"{host}/streams/{video_id}", headers=get_proxy_headers(), timeout=5)
-                    log(f"Piped {host} Status: {res.status_code}")
-                    if res.status_code == 200 and res.json().get('audioStreams'): success_url = res.json()['audioStreams'][0]['url']; log("Strategy 5 Success"); break
-                except Exception as e: log(f"Strategy 5 Error {host}: {e}")
-
-        # Strategy 6: Invidious
+        # Strategy 5: Invidious (Promoted)
         if not success_url:
             for host in ["https://inv.nadeko.net", "https://invidious.privacyredirect.com", "https://yewtu.be", "https://invidious.f5.si"]:
                 try:
-                    log(f"Strategy 6 (Invidious {host})...")
+                    log(f"Strategy 5 (Invidious {host})...")
                     res = requests.get(f"{host}/api/v1/videos/{video_id}", headers=get_proxy_headers(), timeout=5)
                     log(f"Invidious {host} Status: {res.status_code}")
                     if res.status_code == 200:
                          d = res.json()
-                         if d.get('formatStreams') or d.get('adaptiveFormats'): success_url = "found_in_invidious"; log("Strategy 6 Success"); break
+                         if d.get('formatStreams') or d.get('adaptiveFormats'): success_url = "found_in_invidious"; log("Strategy 5 Success"); break
+                except Exception as e: log(f"Strategy 5 Error {host}: {e}")
+
+        # Strategy 6: Piped
+        if not success_url:
+            for host in ["https://piped.video", "https://piped.mha.fi", "https://piped.smnz.de", "https://piped.kavin.rocks"]:
+                try:
+                    log(f"Strategies 6 (Piped {host})...")
+                    res = requests.get(f"{host}/streams/{video_id}", headers=get_proxy_headers(), timeout=5)
+                    log(f"Piped {host} Status: {res.status_code}")
+                    if res.status_code == 200 and res.json().get('audioStreams'): success_url = res.json()['audioStreams'][0]['url']; log("Strategy 6 Success"); break
                 except Exception as e: log(f"Strategy 6 Error {host}: {e}")
 
         return jsonify({'video_id': video_id, 'success': success_url is not None, 'logs': logs})
