@@ -73,7 +73,13 @@ def get_healthy_piped_instances():
         "https://piped.kavin.rocks",
         "https://piped.projectsegfau.lt",
         "https://piped.r4fo.com",
-        "https://piped.lunar.icu"
+        "https://piped.lunar.icu",
+        "https://piped.privacy.com.de",
+        "https://piped.kavin.rocks",
+        "https://piped.tokhmi.xyz", 
+        "https://piped.adminforge.de",
+        "https://piped.hostux.net",
+        "https://piped.chamuditha.com"
     ]
 
     try:
@@ -119,46 +125,45 @@ def stream_track(video_id):
                 'Referer': 'https://www.google.com/'
             }
 
-        # Strategy 1 (formerly 4): Cobalt API (High Reliability - Simplified Payload)
-        try:
-            cobalt_headers = {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            }
-            # Classic/Robust payload for Cobalt v7/v10 compatibility
-            payload = {
-                'url': f'https://www.youtube.com/watch?v={video_id}',
-                'vCodec': 'h264',
-                'vQuality': '720',
-                'aFormat': 'mp3',
-                'isAudioOnly': True
-            }
-            print(f"Strategy 1 (Cobalt POST): Requesting...")
-            cobalt_res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers=cobalt_headers, timeout=6, verify=False)
-            if cobalt_res.status_code == 200:
-                data = cobalt_res.json()
-                if 'url' in data:
-                    url = data['url']
-                    print(f"Strategy 1 Success: Found URL via Cobalt POST")
-            else:
-                errors.append(f"Strategy 1 (Cobalt Main) failed: Status {cobalt_res.status_code}")
-            
-            # Fallback to GET on a known backup instance if main fails
-            if not url:
-                 print(f"Strategy 1 (Cobalt Backup): Requesting backup...")
-                 cobalt_res = requests.post('https://cobalt.kwiatekmiki.pl/api/json', json=payload, headers=cobalt_headers, timeout=6, verify=False)
-                 if cobalt_res.status_code == 200:
+        # Strategy 1 (formerly 4): Cobalt API (Multiple Instances)
+        # Iterate through multiple Cobalt instances
+        cobalt_instances = [
+            "https://api.cobalt.tools/api/json",
+            "https://cobalt.kwiatekmiki.pl/api/json",
+            "https://cobalt.laccds.com/api/json",
+            "https://xp.nw.r.appspot.com/api/json", # Example backup found online
+            "https://api.cobalt.cool/api/json"
+        ]
+        
+        cobalt_headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        # Classic/Robust payload for Cobalt v7/v10 compatibility
+        payload = {
+            'url': f'https://www.youtube.com/watch?v={video_id}',
+            'vCodec': 'h264',
+            'vQuality': '720',
+            'aFormat': 'mp3',
+            'isAudioOnly': True
+        }
+
+        for cob_host in cobalt_instances:
+            try:
+                print(f"Strategy 1 (Cobalt {cob_host}): Requesting...")
+                cobalt_res = requests.post(cob_host, json=payload, headers=cobalt_headers, timeout=6, verify=False)
+                if cobalt_res.status_code == 200:
                     data = cobalt_res.json()
                     if 'url' in data:
                         url = data['url']
-                        print(f"Strategy 1 Success: Found URL via Cobalt Backup")
-                 else:
-                    errors.append(f"Strategy 1 (Cobalt Backup) failed: Status {cobalt_res.status_code}")
-
-        except Exception as e:
-            print(f"Strategy 1 (Cobalt) failed: {e}")
-            errors.append(f"Strategy 1 (Cobalt) Exception: {str(e)}")
+                        print(f"Strategy 1 Success: Found URL via {cob_host}")
+                        break
+                else:
+                     errors.append(f"Strategy 1 ({cob_host}) failed: Status {cobalt_res.status_code}")
+            except Exception as e:
+                print(f"Strategy 1 ({cob_host}) failed: {e}")
+                errors.append(f"Strategy 1 ({cob_host}) Exception: {str(e)}")
 
         # Strategy 2 (formerly 6): Piped API (Dynamic & Healthy)
         if not url:
@@ -382,25 +387,32 @@ def debug_stream(video_id):
 
         # Strategy 1 (formerly 4): Cobalt
         if not success_url:
-            try:
-                log("Starting Strategy 1 (Cobalt)...")
-                # Classic/Robust payload for Cobalt v7/v10 compatibility
-                payload = {
-                    'url': f'https://www.youtube.com/watch?v={video_id}',
-                    'vCodec': 'h264',
-                    'vQuality': '720',
-                    'aFormat': 'mp3',
-                    'isAudioOnly': True
-                }
-                res = requests.post('https://api.cobalt.tools/api/json', json=payload, headers={'Accept': 'application/json', 'Content-Type': 'application/json'}, timeout=6, verify=False)
-                log(f"Cobalt Status: {res.status_code}")
-                if res.status_code == 200 and 'url' in res.json(): success_url = res.json()['url']; log("Strategy 1 Success")
-                else:
-                    # Backup
-                    log("Cobalt Backup...")
-                    res = requests.post('https://cobalt.kwiatekmiki.pl/api/json', json=payload, headers={'Accept': 'application/json', 'Content-Type': 'application/json'}, timeout=6, verify=False)
-                    if res.status_code == 200 and 'url' in res.json(): success_url = res.json()['url']; log("Strategy 1 Backup Success")
-            except Exception as e: log(f"Strategy 1 Error: {e}")
+            cobalt_instances = [
+                "https://api.cobalt.tools/api/json",
+                "https://cobalt.kwiatekmiki.pl/api/json",
+                "https://cobalt.laccds.com/api/json",
+                "https://xp.nw.r.appspot.com/api/json",
+                "https://api.cobalt.cool/api/json"
+            ]
+            # Classic/Robust payload for Cobalt v7/v10 compatibility
+            payload = {
+                'url': f'https://www.youtube.com/watch?v={video_id}',
+                'vCodec': 'h264',
+                'vQuality': '720',
+                'aFormat': 'mp3',
+                'isAudioOnly': True
+            }
+            
+            for cob_host in cobalt_instances:
+                try:
+                    log(f"Starting Strategy 1 (Cobalt {cob_host})...")
+                    res = requests.post(cob_host, json=payload, headers={'Accept': 'application/json', 'Content-Type': 'application/json'}, timeout=6, verify=False)
+                    log(f"Cobalt {cob_host} Status: {res.status_code}")
+                    if res.status_code == 200 and 'url' in res.json(): 
+                        success_url = res.json()['url']
+                        log(f"Strategy 1 Success: {cob_host}")
+                        break
+                except Exception as e: log(f"Strategy 1 Error {cob_host}: {e}")
 
         # Strategy 2 (formerly 6): Piped (Dynamic)
         if not success_url:
